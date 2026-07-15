@@ -1,0 +1,107 @@
+# This .gitignore file should be placed at the root of your Unity project directory
+#
+# Based on GitHub's official Unity.gitignore template:
+# https://github.com/github/gitignore/blob/main/Unity.gitignore
+#
+# Recommended: add any editor/OS/tool-specific ignore rules from the Global/
+# templates as needed.
+
+.utmp/
+
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+
+*.log
+
+# By default Unity supports Blender asset imports.
+# Blender backup files do not need to be committed.
+*.blend1
+*.blend1.meta
+
+# Memory captures can be very large and may contain sensitive data.
+/[Mm]emoryCaptures/
+
+# Recordings can be very large.
+/[Rr]ecordings/
+
+# Uncomment if you want to ignore the Asset Store Tools plugin.
+# /[Aa]ssets/AssetStoreTools*
+
+# Auto-generated JetBrains Rider plugin.
+/[Aa]ssets/Plugins/Editor/JetBrains*
+
+# JetBrains Rider personal settings.
+*.DotSettings.user
+
+# Visual Studio cache directory.
+.vs/
+
+# Gradle cache directory.
+.gradle/
+
+# Auto-generated IDE solution and project files.
+ExportedObj/
+.consulo/
+*.csproj
+*.unityproj
+*.sln
+*.slnx
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Unity-generated metadata files.
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# Unity crash report files.
+sysinfo.txt
+
+# Mono crash files.
+mono_crash.*
+
+# Build files.
+*.apk
+*.aab
+*.unitypackage
+*.unitypackage.meta
+*.app
+
+# Crashlytics-generated file.
+crashlytics-build.properties
+
+# Test Runner-generated files.
+InitTestScene*.unity*
+
+# Addressables default generated files.
+/ServerData
+/[Aa]ssets/StreamingAssets/aa*
+/[Aa]ssets/AddressableAssetsData/link.xml*
+/[Aa]ssets/Addressables_Temp*
+/[Aa]ssets/AddressableAssetsData/*/*.bin*
+
+# Visual Scripting auto-generated files.
+/[Aa]ssets/Unity.VisualScripting.Generated/VisualScripting.Flow/UnitOptions.db
+/[Aa]ssets/Unity.VisualScripting.Generated/VisualScripting.Flow/UnitOptions.db.meta
+/[Aa]ssets/Unity.VisualScripting.Generated/VisualScripting.Core/Property Providers
+/[Aa]ssets/Unity.VisualScripting.Generated/VisualScripting.Core/Property Providers.meta
+
+# Auto-generated scenes created by play mode tests.
+/[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
+
+# Auto-generated scene dependency cache.
+/[Aa]ssets/[Ss]ceneDependencyCache*
