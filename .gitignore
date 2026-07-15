@@ -6,6 +6,53 @@
 # Recommended: add any editor/OS/tool-specific ignore rules from the Global/
 # templates as needed.
 
+# VS Code
+.vscode/
+
+# IntelliJ IDEA / Android Studio
+.idea/
+*.iml
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Eclipse
+.project
+.classpath
+.settings/
+
+# NetBeans
+nbproject/
+nbbuild/
+dist/
+nbdist/
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*#
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# JetBrains Fleet
+.fleet/
+
+# Nova
+.nova/
+
+# OS files
+.DS_Store
+Thumbs.db
+
 .utmp/
 
 /[Ll]ibrary/
