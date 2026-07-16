@@ -703,7 +703,7 @@ TilemapRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 1828567847
   m_SortingLayer: 1
-  m_SortingOrder: 10
+  m_SortingOrder: 0
   m_MaskInteraction: 0
   m_ChunkSize: {x: 32, y: 32, z: 32}
   m_ChunkCullingBounds: {x: 0, y: 0, z: 0}
@@ -1157,7 +1157,7 @@ TilemapRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 1828567847
   m_SortingLayer: 1
-  m_SortingOrder: 0
+  m_SortingOrder: -100
   m_MaskInteraction: 0
   m_ChunkSize: {x: 32, y: 32, z: 32}
   m_ChunkCullingBounds: {x: 0, y: 0, z: 0}
@@ -3513,6 +3513,19 @@ MonoBehaviour:
   isMoving: 0
   currentTargetCell: {x: 0, y: 0}
   remainingStepCount: 0
+--- !u!210 &2140442444
+SortingGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2140442441}
+  m_Enabled: 1
+  m_SortingLayerID: 1828567847
+  m_SortingLayer: 1
+  m_SortingOrder: 0
+  m_SortAtRoot: 1
+  m_Sort3DAs2D: 0
 --- !u!1001 &2774110112878486181
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3528,6 +3541,10 @@ PrefabInstance:
     - target: {fileID: 1039065456997634628, guid: 07b24610cfa2a3c408a9fc2d653d39c6, type: 3}
       propertyPath: m_Name
       value: Player
+      objectReference: {fileID: 0}
+    - target: {fileID: 1960043923206005631, guid: 07b24610cfa2a3c408a9fc2d653d39c6, type: 3}
+      propertyPath: m_SortingOrder
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 9002586693381434388, guid: 07b24610cfa2a3c408a9fc2d653d39c6, type: 3}
       propertyPath: m_LocalPosition.x
@@ -3573,6 +3590,9 @@ PrefabInstance:
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1039065456997634628, guid: 07b24610cfa2a3c408a9fc2d653d39c6, type: 3}
+      insertIndex: 1
+      addedObject: {fileID: 2140442444}
     - targetCorrespondingSourceObject: {fileID: 1039065456997634628, guid: 07b24610cfa2a3c408a9fc2d653d39c6, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2140442443}

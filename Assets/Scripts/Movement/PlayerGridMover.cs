@@ -34,6 +34,12 @@ namespace IsometricPathfinding.Movement
         [SerializeField]
         private int remainingStepCount;
 
+        [SerializeField]
+        private GridDirection currentMovementDirection;
+
+        [SerializeField]
+        private GridDirection facingDirection = GridDirection.Down;
+
         private readonly List<Vector2Int> activePath = new List<Vector2Int>();
 
         private int nextPathIndex;
@@ -43,6 +49,10 @@ namespace IsometricPathfinding.Movement
         public Vector2Int CurrentTargetCell => currentTargetCell;
 
         public int RemainingStepCount => remainingStepCount;
+
+        public GridDirection CurrentMovementDirection => currentMovementDirection;
+
+        public GridDirection FacingDirection => facingDirection;
 
         private void Reset()
         {
@@ -109,12 +119,7 @@ namespace IsometricPathfinding.Movement
             }
 
             /*
-             * Ne čuvamo referencu na listu koju posjeduje
-             * PathfindingController.
-             *
-             * Radimo vlastitu kopiju kako bi controller
-             * mogao odmah očistiti preview i CurrentPath,
-             * a da igrač ipak nastavi koristiti svoj put.
+             * Radimo vlastitu kopiju putanje.
              */
 
             activePath.Clear();
@@ -131,7 +136,7 @@ namespace IsometricPathfinding.Movement
 
             nextPathIndex = 1;
 
-            currentTargetCell = activePath[nextPathIndex];
+            SetCurrentTarget(activePath[nextPathIndex]);
 
             remainingStepCount = activePath.Count - nextPathIndex;
 
@@ -162,16 +167,14 @@ namespace IsometricPathfinding.Movement
             }
 
             /*
-             * Osiguravamo da se igrač nalazi točno na
-             * centru ćelije, bez malih floating-point
-             * odstupanja.
+             * Uklanjamo mala floating-point odstupanja.
              */
 
             transform.position = targetWorldPosition;
 
             /*
-             * Tek nakon stvarnog dolaska mijenjamo
-             * logičku grid poziciju igrača.
+             * Logičku poziciju mijenjamo tek nakon
+             * stvarnog dolaska u centar ćelije.
              */
 
             playerGridPosition.SetCurrentCell(currentTargetCell);
@@ -184,9 +187,41 @@ namespace IsometricPathfinding.Movement
                 return;
             }
 
-            currentTargetCell = activePath[nextPathIndex];
+            SetCurrentTarget(activePath[nextPathIndex]);
 
             remainingStepCount = activePath.Count - nextPathIndex;
+        }
+
+        private void SetCurrentTarget(Vector2Int targetCell)
+        {
+            currentTargetCell = targetCell;
+
+            Vector2Int movementDifference = currentTargetCell - playerGridPosition.CurrentCell;
+
+            GridDirection newDirection = GetDirectionFromDifference(movementDifference);
+
+            if (newDirection == GridDirection.None)
+            {
+                Debug.LogError(
+                    $"Could not determine movement "
+                        + $"direction from "
+                        + $"{playerGridPosition.CurrentCell} "
+                        + $"to {currentTargetCell}.",
+                    this
+                );
+
+                return;
+            }
+
+            currentMovementDirection = newDirection;
+
+            /*
+             * FacingDirection se ne vraća na None kada
+             * se lik zaustavi. Tako pamtimo kamo je
+             * posljednji put gledao.
+             */
+
+            facingDirection = newDirection;
         }
 
         private bool IsPathValid(IReadOnlyList<Vector2Int> path)
@@ -226,9 +261,9 @@ namespace IsometricPathfinding.Movement
 
                 Vector2Int difference = coordinates - previousCoordinates;
 
-                int cardinalDistance = Mathf.Abs(difference.x) + Mathf.Abs(difference.y);
+                GridDirection stepDirection = GetDirectionFromDifference(difference);
 
-                if (cardinalDistance != 1)
+                if (stepDirection == GridDirection.None)
                 {
                     Debug.LogWarning(
                         $"Invalid movement step from "
@@ -246,6 +281,31 @@ namespace IsometricPathfinding.Movement
             return true;
         }
 
+        private static GridDirection GetDirectionFromDifference(Vector2Int difference)
+        {
+            if (difference == Vector2Int.up)
+            {
+                return GridDirection.Up;
+            }
+
+            if (difference == Vector2Int.down)
+            {
+                return GridDirection.Down;
+            }
+
+            if (difference == Vector2Int.left)
+            {
+                return GridDirection.Left;
+            }
+
+            if (difference == Vector2Int.right)
+            {
+                return GridDirection.Right;
+            }
+
+            return GridDirection.None;
+        }
+
         private void CompleteMovement()
         {
             isMoving = false;
@@ -254,6 +314,13 @@ namespace IsometricPathfinding.Movement
 
             remainingStepCount = 0;
             nextPathIndex = 0;
+
+            /*
+             * Lik se više ne kreće, ali FacingDirection
+             * ostaje posljednji korišteni smjer.
+             */
+
+            currentMovementDirection = GridDirection.None;
 
             activePath.Clear();
         }
@@ -287,6 +354,17 @@ namespace IsometricPathfinding.Movement
             }
 
             return referencesAreValid;
+        }
+
+        private void OnDisable()
+        {
+            isMoving = false;
+            remainingStepCount = 0;
+            nextPathIndex = 0;
+
+            currentMovementDirection = GridDirection.None;
+
+            activePath.Clear();
         }
 
         private void OnValidate()
