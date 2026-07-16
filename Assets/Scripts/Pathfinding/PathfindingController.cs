@@ -5,6 +5,7 @@ using IsometricPathfinding.Movement;
 using IsometricPathfinding.Navigation;
 using IsometricPathfinding.UI;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace IsometricPathfinding.Pathfinding
 {
@@ -17,6 +18,9 @@ namespace IsometricPathfinding.Pathfinding
 
         [SerializeField]
         private PlayerGridPosition playerGridPosition;
+
+        [SerializeField]
+        private PlayerGridMover playerGridMover;
 
         [SerializeField]
         private MouseTileSelector mouseTileSelector;
@@ -36,7 +40,7 @@ namespace IsometricPathfinding.Pathfinding
 
         [Header("Debug")]
         [SerializeField]
-        private bool logPathResults = true;
+        private bool logPathResults;
 
         private AStarPathfinder pathfinder;
 
@@ -67,9 +71,24 @@ namespace IsometricPathfinding.Pathfinding
 
         private void LateUpdate()
         {
+            /*
+             * Dok se igrač kreće ne prikazujemo novu
+             * hover putanju i ne prihvaćamo novi cilj.
+             */
+
+            if (playerGridMover.IsMoving)
+            {
+                if (hasProcessedHover || currentPath.Count > 0 || hasValidPath)
+                {
+                    ClearCurrentPath();
+                }
+
+                return;
+            }
+
             if (!mouseTileSelector.HasHoveredCell)
             {
-                if (hasProcessedHover)
+                if (hasProcessedHover || currentPath.Count > 0)
                 {
                     ClearCurrentPath();
                 }
@@ -89,22 +108,81 @@ namespace IsometricPathfinding.Pathfinding
                 && targetCoordinates == lastTargetCoordinates
                 && targetIsWalkable == lastTargetWasWalkable;
 
-            if (resultIsAlreadyCurrent)
+            /*
+             * A* pokrećemo samo kada se promijenio:
+             *
+             * - početak
+             * - cilj
+             * - prohodnost cilja
+             */
+
+            if (!resultIsAlreadyCurrent)
+            {
+                hasProcessedHover = true;
+
+                lastStartCoordinates = startCoordinates;
+
+                lastTargetCoordinates = targetCoordinates;
+
+                lastTargetWasWalkable = targetIsWalkable;
+
+                currentTarget = targetCoordinates;
+
+                CalculateAndDisplayPath(startCoordinates, targetCoordinates, targetIsWalkable);
+            }
+
+            /*
+             * Klik provjeravamo i kada rezultat nije nov.
+             *
+             * Korisnik će često prvo nekoliko trenutaka
+             * držati miš nad ciljem, a zatim kliknuti.
+             */
+
+            HandleMovementClick();
+        }
+
+        private void HandleMovementClick()
+        {
+            if (Mouse.current == null)
             {
                 return;
             }
 
-            hasProcessedHover = true;
+            if (!Mouse.current.leftButton.wasPressedThisFrame)
+            {
+                return;
+            }
 
-            lastStartCoordinates = startCoordinates;
+            if (!hasValidPath)
+            {
+                return;
+            }
 
-            lastTargetCoordinates = targetCoordinates;
+            /*
+             * Put od samo jednog nodea znači da je cilj
+             * trenutačna ćelija igrača.
+             *
+             * Nema nijednog stvarnog koraka.
+             */
 
-            lastTargetWasWalkable = targetIsWalkable;
+            if (currentPath.Count < 2)
+            {
+                return;
+            }
 
-            currentTarget = targetCoordinates;
+            bool movementStarted = playerGridMover.TryMoveAlongPath(currentPath);
 
-            CalculateAndDisplayPath(startCoordinates, targetCoordinates, targetIsWalkable);
+            if (!movementStarted)
+            {
+                return;
+            }
+
+            /*
+             * PlayerGridMover je napravio vlastitu kopiju.
+             * Sada sigurno možemo ukloniti preview.
+             */
+
+            ClearCurrentPath();
         }
 
         private void CalculateAndDisplayPath(
@@ -225,6 +303,18 @@ namespace IsometricPathfinding.Pathfinding
                     $"{nameof(PathfindingController)} "
                         + $"on '{name}' is missing the "
                         + "Player Grid Position.",
+                    this
+                );
+
+                referencesAreValid = false;
+            }
+
+            if (playerGridMover == null)
+            {
+                Debug.LogError(
+                    $"{nameof(PathfindingController)} "
+                        + $"on '{name}' is missing the "
+                        + "Player Grid Mover.",
                     this
                 );
 

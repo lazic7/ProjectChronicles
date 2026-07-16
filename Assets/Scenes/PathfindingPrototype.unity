@@ -445,6 +445,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::IsometricPathfinding.Pathfinding.PathfindingController
   navigationGrid: {fileID: 1680147849}
   playerGridPosition: {fileID: 2140442442}
+  playerGridMover: {fileID: 2140442443}
   mouseTileSelector: {fileID: 1028042714}
   pathPreviewRenderer: {fileID: 125657304}
   hasValidPath: 0
@@ -3477,17 +3478,41 @@ Tilemap:
     e31: 0
     e32: 0
     e33: 1
+--- !u!1 &2140442441 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1039065456997634628, guid: 07b24610cfa2a3c408a9fc2d653d39c6, type: 3}
+  m_PrefabInstance: {fileID: 2774110112878486181}
+  m_PrefabAsset: {fileID: 0}
 --- !u!114 &2140442442 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 906755140005947418, guid: 07b24610cfa2a3c408a9fc2d653d39c6, type: 3}
   m_PrefabInstance: {fileID: 2774110112878486181}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+  m_GameObject: {fileID: 2140442441}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6c0ed20058433ff4bbbfae359eaf6025, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::IsometricPathfinding.Movement.PlayerGridPosition
+--- !u!114 &2140442443
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2140442441}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 14c17647a2145de4390ba3ab984b6285, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::IsometricPathfinding.Movement.PlayerGridMover
+  navigationGrid: {fileID: 1680147849}
+  playerGridPosition: {fileID: 2140442442}
+  movementSpeed: 3
+  arrivalTolerance: 0.001
+  isMoving: 0
+  currentTargetCell: {x: 0, y: 0}
+  remainingStepCount: 0
 --- !u!1001 &2774110112878486181
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3547,7 +3572,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1039065456997634628, guid: 07b24610cfa2a3c408a9fc2d653d39c6, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2140442443}
   m_SourcePrefab: {fileID: 100100000, guid: 07b24610cfa2a3c408a9fc2d653d39c6, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
