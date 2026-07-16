@@ -564,8 +564,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::IsometricPathfinding.Input.MouseTileSelector
   worldCamera: {fileID: 519420031}
-  groundTilemap: {fileID: 1987230239}
-  obstaclesTilemap: {fileID: 1204055399}
+  navigationGrid: {fileID: 1680147849}
   hoverPreview: {fileID: 125657304}
   hasHoveredCell: 0
   hoveredCell: {x: 0, y: 0}
@@ -882,8 +881,61 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1028042713}
+  - {fileID: 1680147848}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1680147847
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1680147848}
+  - component: {fileID: 1680147849}
+  m_Layer: 0
+  m_Name: NavigationGrid
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1680147848
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1680147847}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1488818775}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1680147849
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1680147847}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d34c87b12088c074caa78fe5d6bb30bf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::IsometricPathfinding.Navigation.NavigationGrid
+  groundTilemap: {fileID: 1987230239}
+  obstaclesTilemap: {fileID: 1204055399}
+  totalNodeCount: 0
+  walkableNodeCount: 0
+  blockedNodeCount: 0
+  minimumCoordinates: {x: 0, y: 0}
+  maximumCoordinates: {x: 0, y: 0}
+  logBuildSummary: 1
 --- !u!1 &1843199254
 GameObject:
   m_ObjectHideFlags: 0

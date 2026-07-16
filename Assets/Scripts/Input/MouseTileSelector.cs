@@ -1,7 +1,7 @@
+using IsometricPathfinding.Navigation;
 using IsometricPathfinding.UI;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.Tilemaps;
 
 namespace IsometricPathfinding.Input
 {
@@ -13,10 +13,7 @@ namespace IsometricPathfinding.Input
         private Camera worldCamera;
 
         [SerializeField]
-        private Tilemap groundTilemap;
-
-        [SerializeField]
-        private Tilemap obstaclesTilemap;
+        private NavigationGrid navigationGrid;
 
         [SerializeField]
         private TileHoverPreview hoverPreview;
@@ -33,7 +30,7 @@ namespace IsometricPathfinding.Input
 
         [Header("Debug")]
         [SerializeField]
-        private bool logCellChanges = true;
+        private bool logCellChanges;
 
         private Vector3Int lastCheckedCell;
         private bool hasLastCheckedCell;
@@ -54,28 +51,27 @@ namespace IsometricPathfinding.Input
 
         private void Update()
         {
-            if (!TryGetCellUnderMouse(out Vector3Int cell))
+            if (!TryGetCellUnderMouse(out Vector3Int tilemapCell))
             {
                 ClearHover();
-
                 hasLastCheckedCell = false;
                 return;
             }
 
-            if (hasLastCheckedCell && cell == lastCheckedCell)
+            if (hasLastCheckedCell && tilemapCell == lastCheckedCell)
             {
                 return;
             }
 
-            lastCheckedCell = cell;
+            lastCheckedCell = tilemapCell;
             hasLastCheckedCell = true;
 
-            EvaluateCell(cell);
+            EvaluateCell(tilemapCell);
         }
 
-        private bool TryGetCellUnderMouse(out Vector3Int cell)
+        private bool TryGetCellUnderMouse(out Vector3Int tilemapCell)
         {
-            cell = default;
+            tilemapCell = default;
 
             if (Mouse.current == null)
             {
@@ -89,44 +85,42 @@ namespace IsometricPathfinding.Input
                 return false;
             }
 
-            float distanceToTilemapPlane = Mathf.Abs(
-                groundTilemap.transform.position.z - worldCamera.transform.position.z
+            float distanceToGridPlane = Mathf.Abs(
+                navigationGrid.WorldPlaneZ - worldCamera.transform.position.z
             );
 
             Vector3 screenPosition = new Vector3(
                 mouseScreenPosition.x,
                 mouseScreenPosition.y,
-                distanceToTilemapPlane
+                distanceToGridPlane
             );
 
             Vector3 worldPosition = worldCamera.ScreenToWorldPoint(screenPosition);
 
-            cell = groundTilemap.WorldToCell(worldPosition);
+            tilemapCell = navigationGrid.WorldToCell(worldPosition);
 
             return true;
         }
 
-        private void EvaluateCell(Vector3Int cell)
+        private void EvaluateCell(Vector3Int tilemapCell)
         {
-            if (!groundTilemap.HasTile(cell))
+            Vector2Int logicalCell = new Vector2Int(tilemapCell.x, tilemapCell.y);
+
+            if (!navigationGrid.TryGetNode(logicalCell, out GridNode node))
             {
                 ClearHover();
                 return;
             }
 
-            bool isWalkable = !obstaclesTilemap.HasTile(cell);
-
             hasHoveredCell = true;
+            hoveredCell = logicalCell;
+            hoveredCellIsWalkable = node.IsWalkable;
 
-            hoveredCell = new Vector2Int(cell.x, cell.y);
-
-            hoveredCellIsWalkable = isWalkable;
-
-            hoverPreview.Show(cell, isWalkable);
+            hoverPreview.Show(tilemapCell, node.IsWalkable);
 
             if (logCellChanges)
             {
-                Debug.Log($"Hovered cell: {hoveredCell}, " + $"walkable: {isWalkable}.", this);
+                Debug.Log($"Hovered cell: {hoveredCell}, " + $"walkable: {node.IsWalkable}.", this);
             }
         }
 
@@ -149,28 +143,21 @@ namespace IsometricPathfinding.Input
             if (worldCamera == null)
             {
                 Debug.LogError(
-                    $"{nameof(MouseTileSelector)} on " + $"'{name}' is missing the World Camera.",
+                    $"{nameof(MouseTileSelector)} on "
+                        + $"'{name}' is missing the "
+                        + "World Camera.",
                     this
                 );
 
                 referencesAreValid = false;
             }
 
-            if (groundTilemap == null)
-            {
-                Debug.LogError(
-                    $"{nameof(MouseTileSelector)} on " + $"'{name}' is missing the Ground Tilemap.",
-                    this
-                );
-
-                referencesAreValid = false;
-            }
-
-            if (obstaclesTilemap == null)
+            if (navigationGrid == null)
             {
                 Debug.LogError(
                     $"{nameof(MouseTileSelector)} on "
-                        + $"'{name}' is missing the Obstacles Tilemap.",
+                        + $"'{name}' is missing the "
+                        + "Navigation Grid.",
                     this
                 );
 
@@ -180,7 +167,9 @@ namespace IsometricPathfinding.Input
             if (hoverPreview == null)
             {
                 Debug.LogError(
-                    $"{nameof(MouseTileSelector)} on " + $"'{name}' is missing the Hover Preview.",
+                    $"{nameof(MouseTileSelector)} on "
+                        + $"'{name}' is missing the "
+                        + "Hover Preview.",
                     this
                 );
 
