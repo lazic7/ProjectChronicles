@@ -1,5 +1,4 @@
 using IsometricPathfinding.Navigation;
-using IsometricPathfinding.UI;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -14,9 +13,6 @@ namespace IsometricPathfinding.Input
 
         [SerializeField]
         private NavigationGrid navigationGrid;
-
-        [SerializeField]
-        private TileHoverPreview hoverPreview;
 
         [Header("Runtime State")]
         [SerializeField]
@@ -53,7 +49,7 @@ namespace IsometricPathfinding.Input
         {
             if (!TryGetCellUnderMouse(out Vector3Int tilemapCell))
             {
-                ClearHover();
+                ClearHoverState();
                 hasLastCheckedCell = false;
                 return;
             }
@@ -108,7 +104,7 @@ namespace IsometricPathfinding.Input
 
             if (!navigationGrid.TryGetNode(logicalCell, out GridNode node))
             {
-                ClearHover();
+                ClearHoverState();
                 return;
             }
 
@@ -116,24 +112,17 @@ namespace IsometricPathfinding.Input
             hoveredCell = logicalCell;
             hoveredCellIsWalkable = node.IsWalkable;
 
-            hoverPreview.Show(tilemapCell, node.IsWalkable);
-
             if (logCellChanges)
             {
                 Debug.Log($"Hovered cell: {hoveredCell}, " + $"walkable: {node.IsWalkable}.", this);
             }
         }
 
-        private void ClearHover()
+        private void ClearHoverState()
         {
             hasHoveredCell = false;
             hoveredCell = default;
             hoveredCellIsWalkable = false;
-
-            if (hoverPreview != null)
-            {
-                hoverPreview.Clear();
-            }
         }
 
         private bool ValidateReferences()
@@ -164,27 +153,12 @@ namespace IsometricPathfinding.Input
                 referencesAreValid = false;
             }
 
-            if (hoverPreview == null)
-            {
-                Debug.LogError(
-                    $"{nameof(MouseTileSelector)} on "
-                        + $"'{name}' is missing the "
-                        + "Hover Preview.",
-                    this
-                );
-
-                referencesAreValid = false;
-            }
-
             return referencesAreValid;
         }
 
         private void OnDisable()
         {
-            if (hoverPreview != null)
-            {
-                hoverPreview.Clear();
-            }
+            ClearHoverState();
         }
     }
 }

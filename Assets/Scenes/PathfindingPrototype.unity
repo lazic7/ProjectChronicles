@@ -256,11 +256,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 125657300}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fae7346cfe7dd554e82c6fedaed6d689, type: 3}
+  m_Script: {fileID: 11500000, guid: 1139b0f9e93c71443a99cc6c3ab9f4f1, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::IsometricPathfinding.UI.TileHoverPreview
-  walkableTile: {fileID: 11400000, guid: 6f8e8bdf39dac264884b475f27a1f54c, type: 2}
-  blockedTile: {fileID: 11400000, guid: bc113897c2648fd4c8dacea0c5c96212, type: 2}
+  m_EditorClassIdentifier: Assembly-CSharp::IsometricPathfinding.UI.PathPreviewRenderer
+  pathTile: {fileID: 11400000, guid: 2300ccde88575964eb8bcae256f85f19, type: 2}
+  targetTile: {fileID: 11400000, guid: 6f8e8bdf39dac264884b475f27a1f54c, type: 2}
+  invalidTile: {fileID: 11400000, guid: bc113897c2648fd4c8dacea0c5c96212, type: 2}
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
@@ -398,6 +399,58 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &531216934
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 531216935}
+  - component: {fileID: 531216936}
+  m_Layer: 0
+  m_Name: PathfindingController
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &531216935
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 531216934}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1488818775}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &531216936
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 531216934}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7495e481f23a9cf45b4c67e62b240651, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::IsometricPathfinding.Pathfinding.PathfindingController
+  navigationGrid: {fileID: 1680147849}
+  playerGridPosition: {fileID: 2140442442}
+  mouseTileSelector: {fileID: 1028042714}
+  pathPreviewRenderer: {fileID: 125657304}
+  hasValidPath: 0
+  currentTarget: {x: 0, y: 0}
+  movementStepCount: 0
+  logPathResults: 0
 --- !u!1 &543310135
 GameObject:
   m_ObjectHideFlags: 0
@@ -565,7 +618,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::IsometricPathfinding.Input.MouseTileSelector
   worldCamera: {fileID: 519420031}
   navigationGrid: {fileID: 1680147849}
-  hoverPreview: {fileID: 125657304}
   hasHoveredCell: 0
   hoveredCell: {x: 0, y: 0}
   hoveredCellIsWalkable: 0
@@ -688,6 +740,16 @@ Tilemap:
       m_TileObjectToInstantiateIndex: 65535
       dummyAlignment: 0
       m_AllTileFlags: 1073741825
+  - first: {x: -9, y: -10, z: 0}
+    second:
+      serializedVersion: 2
+      m_TileIndex: 0
+      m_TileSpriteIndex: 0
+      m_TileMatrixIndex: 0
+      m_TileColorIndex: 0
+      m_TileObjectToInstantiateIndex: 65535
+      dummyAlignment: 0
+      m_AllTileFlags: 1073741825
   - first: {x: -7, y: -10, z: 0}
     second:
       serializedVersion: 2
@@ -699,6 +761,36 @@ Tilemap:
       dummyAlignment: 0
       m_AllTileFlags: 1073741825
   - first: {x: -6, y: -10, z: 0}
+    second:
+      serializedVersion: 2
+      m_TileIndex: 0
+      m_TileSpriteIndex: 0
+      m_TileMatrixIndex: 0
+      m_TileColorIndex: 0
+      m_TileObjectToInstantiateIndex: 65535
+      dummyAlignment: 0
+      m_AllTileFlags: 1073741825
+  - first: {x: -10, y: -9, z: 0}
+    second:
+      serializedVersion: 2
+      m_TileIndex: 0
+      m_TileSpriteIndex: 0
+      m_TileMatrixIndex: 0
+      m_TileColorIndex: 0
+      m_TileObjectToInstantiateIndex: 65535
+      dummyAlignment: 0
+      m_AllTileFlags: 1073741825
+  - first: {x: -8, y: -9, z: 0}
+    second:
+      serializedVersion: 2
+      m_TileIndex: 0
+      m_TileSpriteIndex: 0
+      m_TileMatrixIndex: 0
+      m_TileColorIndex: 0
+      m_TileObjectToInstantiateIndex: 65535
+      dummyAlignment: 0
+      m_AllTileFlags: 1073741825
+  - first: {x: -9, y: -8, z: 0}
     second:
       serializedVersion: 2
       m_TileIndex: 0
@@ -800,13 +892,13 @@ Tilemap:
       m_AllTileFlags: 1073741825
   m_AnimatedTiles: {}
   m_TileAssetArray:
-  - m_RefCount: 13
+  - m_RefCount: 17
     m_Data: {fileID: 11400000, guid: c7e56ebc88f22a64596243e3691e3fc1, type: 2}
   m_TileSpriteArray:
-  - m_RefCount: 13
+  - m_RefCount: 17
     m_Data: {fileID: 21300000, guid: b02e17e2a05aca048b3903b1ac5aff06, type: 3}
   m_TileMatrixArray:
-  - m_RefCount: 13
+  - m_RefCount: 17
     m_Data:
       e00: 1
       e01: 0
@@ -825,7 +917,7 @@ Tilemap:
       e32: 0
       e33: 1
   m_TileColorArray:
-  - m_RefCount: 13
+  - m_RefCount: 17
     m_Data: {r: 1, g: 1, b: 1, a: 1}
   m_TileObjectToInstantiateArray: []
   m_AnimationFrameRate: 1
@@ -882,6 +974,7 @@ Transform:
   m_Children:
   - {fileID: 1028042713}
   - {fileID: 1680147848}
+  - {fileID: 531216935}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1680147847
@@ -3384,6 +3477,17 @@ Tilemap:
     e31: 0
     e32: 0
     e33: 1
+--- !u!114 &2140442442 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 906755140005947418, guid: 07b24610cfa2a3c408a9fc2d653d39c6, type: 3}
+  m_PrefabInstance: {fileID: 2774110112878486181}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6c0ed20058433ff4bbbfae359eaf6025, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::IsometricPathfinding.Movement.PlayerGridPosition
 --- !u!1001 &2774110112878486181
 PrefabInstance:
   m_ObjectHideFlags: 0
