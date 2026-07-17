@@ -944,6 +944,49 @@ Tilemap:
     e31: 0
     e32: 0
     e33: 1
+--- !u!1 &1231361349 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7122671622804936793, guid: 07b24610cfa2a3c408a9fc2d653d39c6, type: 3}
+  m_PrefabInstance: {fileID: 2774110112878486181}
+  m_PrefabAsset: {fileID: 0}
+--- !u!95 &1231361352
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1231361349}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: f4462d74e0e4ef04a909229675a92ae3, type: 2}
+  m_CullingMode: 1
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &1231361353
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1231361349}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 899b62210fcc4ff45954f856e2cdeb92, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::IsometricPathfinding.Movement.PlayerAnimationController
+  playerGridMover: {fileID: 2140442443}
+  animator: {fileID: 1231361352}
+  appliedIsMoving: 0
+  appliedFacingDirection: 2
 --- !u!1 &1488818774
 GameObject:
   m_ObjectHideFlags: 0
@@ -3513,6 +3556,8 @@ MonoBehaviour:
   isMoving: 0
   currentTargetCell: {x: 0, y: 0}
   remainingStepCount: 0
+  currentMovementDirection: 0
+  facingDirection: 2
 --- !u!210 &2140442444
 SortingGroup:
   m_ObjectHideFlags: 0
@@ -3596,6 +3641,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 1039065456997634628, guid: 07b24610cfa2a3c408a9fc2d653d39c6, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2140442443}
+    - targetCorrespondingSourceObject: {fileID: 7122671622804936793, guid: 07b24610cfa2a3c408a9fc2d653d39c6, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1231361352}
+    - targetCorrespondingSourceObject: {fileID: 7122671622804936793, guid: 07b24610cfa2a3c408a9fc2d653d39c6, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1231361353}
   m_SourcePrefab: {fileID: 100100000, guid: 07b24610cfa2a3c408a9fc2d653d39c6, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
