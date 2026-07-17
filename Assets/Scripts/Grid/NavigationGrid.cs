@@ -188,14 +188,6 @@ namespace IsometricPathfinding.Navigation
             return neighbors;
         }
 
-        public void ResetAllPathData()
-        {
-            foreach (GridNode node in nodes.Values)
-            {
-                node.ResetPathData();
-            }
-        }
-
         public Vector3Int WorldToCell(Vector3 worldPosition)
         {
             return groundTilemap.WorldToCell(worldPosition);

@@ -28,6 +28,15 @@ namespace IsometricPathfinding.Pathfinding
         [SerializeField]
         private PathPreviewRenderer pathPreviewRenderer;
 
+        [Header("Path Preferences")]
+        [SerializeField]
+        [Min(0)]
+        private int turnPenaltyCost = 1;
+
+        [SerializeField]
+        [Min(0)]
+        private int reversePenaltyCost = 2;
+
         [Header("Runtime State")]
         [SerializeField]
         private bool hasValidPath;
@@ -37,6 +46,12 @@ namespace IsometricPathfinding.Pathfinding
 
         [SerializeField]
         private int movementStepCount;
+
+        [SerializeField]
+        private GridDirection pathInitialFacingDirection;
+
+        [SerializeField]
+        private int turnPenaltyScore;
 
         [Header("Debug")]
         [SerializeField]
@@ -66,7 +81,7 @@ namespace IsometricPathfinding.Pathfinding
                 return;
             }
 
-            pathfinder = new AStarPathfinder(navigationGrid);
+            pathfinder = new AStarPathfinder(navigationGrid, turnPenaltyCost, reversePenaltyCost);
         }
 
         private void LateUpdate()
@@ -192,8 +207,12 @@ namespace IsometricPathfinding.Pathfinding
         )
         {
             currentPath.Clear();
+
             hasValidPath = false;
             movementStepCount = 0;
+            turnPenaltyScore = 0;
+
+            pathInitialFacingDirection = playerGridMover.FacingDirection;
 
             if (!targetIsWalkable)
             {
@@ -207,7 +226,9 @@ namespace IsometricPathfinding.Pathfinding
             bool pathWasFound = pathfinder.TryFindPath(
                 startCoordinates,
                 targetCoordinates,
-                out List<Vector2Int> foundPath
+                pathInitialFacingDirection,
+                out List<Vector2Int> foundPath,
+                out int foundTurnPenalty
             );
 
             if (!pathWasFound)
@@ -225,6 +246,8 @@ namespace IsometricPathfinding.Pathfinding
 
             movementStepCount = Mathf.Max(0, currentPath.Count - 1);
 
+            turnPenaltyScore = foundTurnPenalty;
+
             pathPreviewRenderer.ShowPath(currentPath);
 
             if (logPathResults)
@@ -233,7 +256,11 @@ namespace IsometricPathfinding.Pathfinding
                     $"Path found from "
                         + $"{startCoordinates} to "
                         + $"{targetCoordinates}. "
+                        + $"Initial facing: "
+                        + $"{pathInitialFacingDirection}. "
                         + $"Steps: {movementStepCount}. "
+                        + $"Turn penalty: "
+                        + $"{turnPenaltyScore}. "
                         + $"Route: "
                         + $"{BuildPathText(currentPath)}",
                     this
@@ -250,6 +277,9 @@ namespace IsometricPathfinding.Pathfinding
             hasValidPath = false;
             currentTarget = default;
             movementStepCount = 0;
+            turnPenaltyScore = 0;
+
+            pathInitialFacingDirection = GridDirection.None;
 
             pathPreviewRenderer.Clear();
         }
@@ -354,6 +384,13 @@ namespace IsometricPathfinding.Pathfinding
             {
                 pathPreviewRenderer.Clear();
             }
+        }
+
+        private void OnValidate()
+        {
+            turnPenaltyCost = Mathf.Max(0, turnPenaltyCost);
+
+            reversePenaltyCost = Mathf.Max(turnPenaltyCost, reversePenaltyCost);
         }
     }
 }
