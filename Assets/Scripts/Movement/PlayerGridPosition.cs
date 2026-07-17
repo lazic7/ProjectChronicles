@@ -16,7 +16,7 @@ namespace IsometricPathfinding.Movement
 
         public Vector2Int CurrentCell => currentCell;
 
-        private void Start()
+        private void Awake()
         {
             InitializeFromWorldPosition();
         }

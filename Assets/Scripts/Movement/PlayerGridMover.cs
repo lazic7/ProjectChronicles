@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using IsometricPathfinding.Navigation;
 using UnityEngine;
@@ -45,6 +46,8 @@ namespace IsometricPathfinding.Movement
         private int nextPathIndex;
 
         public bool IsMoving => isMoving;
+
+        public event Action MovementCompleted;
 
         public Vector2Int CurrentTargetCell => currentTargetCell;
 
@@ -323,6 +326,15 @@ namespace IsometricPathfinding.Movement
             currentMovementDirection = GridDirection.None;
 
             activePath.Clear();
+
+            /*
+            * Sve movement stanje sada je završeno i Player
+            * se nalazi u centru konačne ćelije.
+            *
+            * Obavještavamo zainteresirane sustave.
+            */
+
+            MovementCompleted?.Invoke();
         }
 
         private bool ValidateReferences()
