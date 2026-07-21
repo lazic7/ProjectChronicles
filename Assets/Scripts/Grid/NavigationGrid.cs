@@ -22,6 +22,9 @@ namespace IsometricPathfinding.Navigation
         [SerializeField]
         private Tilemap obstaclesTilemap;
 
+        [SerializeField] 
+        private GridOccupancyManager occupancyManager;
+
         [Header("Runtime State")]
         [SerializeField]
         private int totalNodeCount;
@@ -249,6 +252,36 @@ namespace IsometricPathfinding.Navigation
             }
 
             return referencesAreValid;
+        }
+        
+        public bool IsOccupied(Vector2Int coordinates)
+        {
+            return occupancyManager != null && occupancyManager.IsOccupied(coordinates);
+        }
+
+        public bool IsOccupiedByOther(Vector2Int coordinates, GameObject actor)
+        {
+            return occupancyManager != null && occupancyManager.IsOccupiedByOther(coordinates, actor);
+        }
+
+        public bool IsWalkableAndUnoccupied(Vector2Int coordinates)
+        {
+            return IsWalkable(coordinates) && !IsOccupied(coordinates);
+        }
+
+        public bool IsWalkableForActor(Vector2Int coordinates, GameObject actor)
+        {
+            if (!IsWalkable(coordinates))
+            {
+                return false;
+            }
+
+            if (occupancyManager == null)
+            {
+                return true;
+            }
+
+            return !occupancyManager.IsOccupiedByOther(coordinates, actor);
         }
     }
 }

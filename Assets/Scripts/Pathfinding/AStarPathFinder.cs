@@ -13,6 +13,8 @@ namespace IsometricPathfinding.Pathfinding
         private readonly int turnPenaltyCost;
         private readonly int reversePenaltyCost;
 
+        private readonly System.Func<Vector2Int, bool> canEnterCell;
+
         /*
          * Jedan dodatni korak mora biti skuplji od
          * najveće moguće razlike u turn penaltyju
@@ -23,7 +25,8 @@ namespace IsometricPathfinding.Pathfinding
         public AStarPathfinder(
             NavigationGrid navigationGrid,
             int turnPenaltyCost,
-            int reversePenaltyCost
+            int reversePenaltyCost,
+            System.Func<Vector2Int, bool> canEnterCell = null
         )
         {
             this.navigationGrid = navigationGrid;
@@ -31,6 +34,8 @@ namespace IsometricPathfinding.Pathfinding
             this.turnPenaltyCost = Mathf.Max(0, turnPenaltyCost);
 
             this.reversePenaltyCost = Mathf.Max(this.turnPenaltyCost, reversePenaltyCost);
+
+            this.canEnterCell = canEnterCell;
 
             stepPriorityCost = CalculateStepPriorityCost();
         }
@@ -111,6 +116,11 @@ namespace IsometricPathfinding.Pathfinding
                 foreach (GridNode neighbor in neighbors)
                 {
                     if (!neighbor.IsWalkable)
+                    {
+                        continue;
+                    }
+                    
+                    if (canEnterCell != null && !canEnterCell(neighbor.Coordinates))
                     {
                         continue;
                     }

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Text;
+using IsometricPathfinding.Combat;
 using IsometricPathfinding.Input;
 using IsometricPathfinding.Movement;
 using IsometricPathfinding.Navigation;
@@ -13,50 +14,43 @@ namespace IsometricPathfinding.Pathfinding
     public sealed class PathfindingController : MonoBehaviour
     {
         [Header("Scene References")]
-        [SerializeField]
-        private NavigationGrid navigationGrid;
+        
+        [SerializeField] private NavigationGrid navigationGrid;
 
-        [SerializeField]
-        private PlayerGridPosition playerGridPosition;
+        [SerializeField] private PlayerGridPosition playerGridPosition;
 
-        [SerializeField]
-        private PlayerGridMover playerGridMover;
+        [SerializeField] private PlayerGridMover playerGridMover;
 
-        [SerializeField]
-        private MouseTileSelector mouseTileSelector;
+        [SerializeField] private MouseTileSelector mouseTileSelector;
 
-        [SerializeField]
-        private PathPreviewRenderer pathPreviewRenderer;
+        [SerializeField] private PathPreviewRenderer pathPreviewRenderer;
+
+        [SerializeField] private DangerTurnController dangerTurnController;
 
         [Header("Path Preferences")]
-        [SerializeField]
-        [Min(0)]
-        private int turnPenaltyCost = 1;
+        
+        [SerializeField] [Min(0)] private int turnPenaltyCost = 1;
 
-        [SerializeField]
-        [Min(0)]
-        private int reversePenaltyCost = 2;
+        [SerializeField] [Min(0)] private int reversePenaltyCost = 2;
 
         [Header("Runtime State")]
-        [SerializeField]
-        private bool hasValidPath;
+        
+        [SerializeField] private bool hasValidPath;
 
-        [SerializeField]
-        private Vector2Int currentTarget;
+        [SerializeField] private Vector2Int currentTarget;
 
-        [SerializeField]
-        private int movementStepCount;
+        [SerializeField] private int movementStepCount;
 
-        [SerializeField]
-        private GridDirection pathInitialFacingDirection;
+        [SerializeField] private GridDirection pathInitialFacingDirection;
 
-        [SerializeField]
-        private int turnPenaltyScore;
+        [SerializeField] private int turnPenaltyScore;
+
+        [SerializeField] private int playerMovementPoints = 5;
 
         [Header("Debug")]
-        [SerializeField]
-        private bool logPathResults;
-
+        
+        [SerializeField] private bool logPathResults;
+        
         private AStarPathfinder pathfinder;
 
         private readonly List<Vector2Int> currentPath = new List<Vector2Int>();
@@ -184,8 +178,15 @@ namespace IsometricPathfinding.Pathfinding
             {
                 return;
             }
+            
+            if(dangerTurnController != null && dangerTurnController.GameMode == GameMode.Danger && dangerTurnController.CurrentPhase != DangerTurnPhase.PlayerTurn)
+            {
+                return;
+            }
 
-            bool movementStarted = playerGridMover.TryMoveAlongPath(currentPath);
+            IReadOnlyList<Vector2Int> pathToUse = LimitPathToMovementPoints(currentPath, playerMovementPoints);
+
+            bool movementStarted = playerGridMover.TryMoveAlongPath(pathToUse);
 
             if (!movementStarted)
             {
@@ -240,15 +241,15 @@ namespace IsometricPathfinding.Pathfinding
                 return;
             }
 
-            currentPath.AddRange(foundPath);
+            currentPath.AddRange(LimitPathToMovementPoints(foundPath, playerMovementPoints));
 
-            hasValidPath = true;
+            hasValidPath = currentPath.Count >= 2;
 
             movementStepCount = Mathf.Max(0, currentPath.Count - 1);
 
             turnPenaltyScore = foundTurnPenalty;
 
-            pathPreviewRenderer.ShowPath(currentPath);
+            pathPreviewRenderer.ShowPath(currentPath, targetCoordinates);
 
             if (logPathResults)
             {
@@ -282,6 +283,43 @@ namespace IsometricPathfinding.Pathfinding
             pathInitialFacingDirection = GridDirection.None;
 
             pathPreviewRenderer.Clear();
+        }
+
+        private static List<Vector2Int> LimitPathToMovementPoints(IReadOnlyList<Vector2Int> path, int movementPoints)
+        {
+            List<Vector2Int> limitedPath = new List<Vector2Int>();
+
+            if (path == null || path.Count == 0)
+            {
+                return limitedPath;
+            }
+            
+            /*
+             * path[0] is the current player cell.
+             *
+             * movementPoints means actual movement steps.
+             *
+             * Example:
+             * movementPoints = 6
+             *
+             * path indices allowed:
+             * 0 = start cell
+             * 1 = step 1
+             * 2 = step 2
+             * 3 = step 3
+             * 4 = step 4
+             */
+            
+            int safeMovementPoints = Mathf.Max(0, movementPoints);
+
+            int maxIndex = Mathf.Min(path.Count - 1, safeMovementPoints);
+            
+            for(int i = 0; i <= maxIndex; i++)
+            {
+                limitedPath.Add(path[i]);
+            }
+            
+            return limitedPath;
         }
 
         private void LogInvalidTarget(Vector2Int targetCoordinates, string reason)
@@ -391,6 +429,8 @@ namespace IsometricPathfinding.Pathfinding
             turnPenaltyCost = Mathf.Max(0, turnPenaltyCost);
 
             reversePenaltyCost = Mathf.Max(turnPenaltyCost, reversePenaltyCost);
+            
+            playerMovementPoints = Mathf.Max(1, playerMovementPoints);
         }
     }
 }

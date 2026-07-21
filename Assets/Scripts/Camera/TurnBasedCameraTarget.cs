@@ -1,3 +1,4 @@
+using System;
 using IsometricPathfinding.Movement;
 using UnityEngine;
 
@@ -51,7 +52,7 @@ namespace IsometricPathfinding.CameraSystem
             playerGridMover.MovementCompleted -= HandleMovementCompleted;
         }
 
-        private void HandleMovementCompleted()
+        private void HandleMovementCompleted(object sender, EventArgs e)
         {
             SnapToPlayer();
         }

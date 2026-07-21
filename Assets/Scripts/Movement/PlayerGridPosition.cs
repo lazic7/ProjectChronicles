@@ -1,3 +1,4 @@
+using IsometricPathfinding.Navigation;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
@@ -9,6 +10,9 @@ namespace IsometricPathfinding.Movement
         [Header("References")]
         [SerializeField]
         private Tilemap groundTilemap;
+        
+        [SerializeField]
+        private GridOccupancyManager occupancyManager;
 
         [Header("Runtime State")]
         [SerializeField]
@@ -51,6 +55,11 @@ namespace IsometricPathfinding.Movement
 
             currentCell = logicalCell;
 
+            if (occupancyManager != null)
+            {
+                occupancyManager.TryReister(gameObject, currentCell);
+            }
+
             SnapToCurrentCell();
 
             Debug.Log($"Player initialized at grid cell {currentCell}.", this);
@@ -78,6 +87,18 @@ namespace IsometricPathfinding.Movement
                 );
 
                 return;
+            }
+            
+            Vector2Int previousCell = currentCell;
+
+            if (occupancyManager != null)
+            {
+                bool moved = occupancyManager.TryMove(gameObject, previousCell, newCell);
+
+                if (!moved)
+                {
+                    return;
+                }
             }
 
             currentCell = newCell;

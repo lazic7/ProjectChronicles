@@ -19,7 +19,7 @@ namespace IsometricPathfinding.Movement
         [Header("Movement Settings")]
         [SerializeField]
         [Min(0.01f)]
-        private float movementSpeed = 2f;
+        private float movementSpeed = 3f;
 
         [SerializeField]
         [Min(0.0001f)]
@@ -47,7 +47,7 @@ namespace IsometricPathfinding.Movement
 
         public bool IsMoving => isMoving;
 
-        public event Action MovementCompleted;
+        public event EventHandler<EventArgs> MovementCompleted;
 
         public Vector2Int CurrentTargetCell => currentTargetCell;
 
@@ -334,7 +334,7 @@ namespace IsometricPathfinding.Movement
             * Obavještavamo zainteresirane sustave.
             */
 
-            MovementCompleted?.Invoke();
+            MovementCompleted?.Invoke(this, EventArgs.Empty);
         }
 
         private bool ValidateReferences()

@@ -18,6 +18,9 @@ namespace IsometricPathfinding.UI
         [SerializeField]
         private TileBase invalidTile;
 
+        [SerializeField] 
+        private TileBase hoverTile;
+
         private Tilemap previewTilemap;
 
         private readonly List<Vector3Int> displayedCells = new List<Vector3Int>();
@@ -29,12 +32,13 @@ namespace IsometricPathfinding.UI
             ValidateReferences();
         }
 
-        public void ShowPath(IReadOnlyList<Vector2Int> path)
+        public void ShowPath(IReadOnlyList<Vector2Int> path, Vector2Int hoverCoordinates)
         {
             Clear();
 
             if (path == null || path.Count == 0)
             {
+                SetPreviewTile(hoverCoordinates, hoverTile);
                 return;
             }
 
@@ -48,7 +52,12 @@ namespace IsometricPathfinding.UI
             if (path.Count == 1)
             {
                 SetPreviewTile(path[0], targetTile);
-
+                
+                if (hoverCoordinates != path[0])
+                {
+                    SetPreviewTile(hoverCoordinates, hoverTile);
+                }
+                
                 return;
             }
 
@@ -65,9 +74,14 @@ namespace IsometricPathfinding.UI
                 SetPreviewTile(path[index], pathTile);
             }
 
-            Vector2Int targetCoordinates = path[path.Count - 1];
+            Vector2Int movementDestination = path[path.Count - 1];
 
-            SetPreviewTile(targetCoordinates, targetTile);
+            SetPreviewTile(movementDestination, targetTile);
+            
+            if (hoverCoordinates != movementDestination)
+            {
+                SetPreviewTile(hoverCoordinates, hoverTile);
+            }
         }
 
         public void ShowInvalid(Vector2Int targetCoordinates)
@@ -105,7 +119,10 @@ namespace IsometricPathfinding.UI
 
             previewTilemap.SetTile(tilemapCell, tile);
 
-            displayedCells.Add(tilemapCell);
+            if (!displayedCells.Contains(tilemapCell))
+            {
+                displayedCells.Add(tilemapCell);
+            }
         }
 
         private bool ValidateReferences()
@@ -136,6 +153,16 @@ namespace IsometricPathfinding.UI
             {
                 Debug.LogError(
                     $"{nameof(PathPreviewRenderer)} on " + $"'{name}' is missing the Invalid Tile.",
+                    this
+                );
+
+                referencesAreValid = false;
+            }
+            
+            if (hoverTile == null)
+            {
+                Debug.LogError(
+                    $"{nameof(PathPreviewRenderer)} on " + $"'{name}' is missing the Hover Tile.",
                     this
                 );
 
