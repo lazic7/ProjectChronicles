@@ -4,6 +4,7 @@ using IsometricPathfinding.Combat;
 using IsometricPathfinding.Input;
 using IsometricPathfinding.Movement;
 using IsometricPathfinding.Navigation;
+using IsometricPathfinding.Zombies;
 using IsometricPathfinding.UI;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -75,7 +76,12 @@ namespace IsometricPathfinding.Pathfinding
                 return;
             }
 
-            pathfinder = new AStarPathfinder(navigationGrid, turnPenaltyCost, reversePenaltyCost);
+            pathfinder = new AStarPathfinder(
+                navigationGrid, 
+                turnPenaltyCost,
+                reversePenaltyCost,
+                cell => navigationGrid.IsWalkableForActor(cell, playerGridMover.gameObject)
+            );
         }
 
         private void LateUpdate()
@@ -215,11 +221,30 @@ namespace IsometricPathfinding.Pathfinding
 
             pathInitialFacingDirection = playerGridMover.FacingDirection;
 
+            Vector2Int requestedTargetCoordinates = targetCoordinates;
+
+            if (!TryResolveMovementTarget(
+                    startCoordinates,
+                    requestedTargetCoordinates,
+                    out targetCoordinates
+                ))
+            {
+                pathPreviewRenderer.ShowInvalid(requestedTargetCoordinates);
+
+                LogInvalidTarget(requestedTargetCoordinates, "the target cell is occupied");
+
+                return;
+            }
+
+            currentTarget = targetCoordinates;
+
+            targetIsWalkable = navigationGrid.IsWalkable(targetCoordinates);
+
             if (!targetIsWalkable)
             {
-                pathPreviewRenderer.ShowInvalid(targetCoordinates);
+                pathPreviewRenderer.ShowInvalid(requestedTargetCoordinates);
 
-                LogInvalidTarget(targetCoordinates, "the target cell is blocked");
+                LogInvalidTarget(requestedTargetCoordinates, "the target cell is blocked");
 
                 return;
             }
@@ -234,7 +259,7 @@ namespace IsometricPathfinding.Pathfinding
 
             if (!pathWasFound)
             {
-                pathPreviewRenderer.ShowInvalid(targetCoordinates);
+                pathPreviewRenderer.ShowInvalid(requestedTargetCoordinates);
 
                 LogInvalidTarget(targetCoordinates, "no route exists");
 
@@ -249,7 +274,7 @@ namespace IsometricPathfinding.Pathfinding
 
             turnPenaltyScore = foundTurnPenalty;
 
-            pathPreviewRenderer.ShowPath(currentPath, targetCoordinates);
+            pathPreviewRenderer.ShowPath(currentPath, requestedTargetCoordinates);
 
             if (logPathResults)
             {
@@ -267,6 +292,103 @@ namespace IsometricPathfinding.Pathfinding
                     this
                 );
             }
+        }
+
+        private bool TryResolveMovementTarget(
+            Vector2Int startCoordinates, 
+            Vector2Int requestedTargetCoordinates,
+            out Vector2Int movementTargetCoordinates
+        )
+        {
+            movementTargetCoordinates = requestedTargetCoordinates;
+
+            if (!navigationGrid.TryGetOccupant(requestedTargetCoordinates, out GameObject occupant))
+            {
+                return true;
+            }
+            
+            if (occupant == playerGridMover.gameObject)
+            {
+                return true;
+            }
+
+            ZombieAgent zombie = occupant.GetComponent<ZombieAgent>();
+
+            if (zombie == null)
+            {
+                return false;
+            }
+
+            return TryFindBestAdjacentCellToOccupiedTarget(
+                startCoordinates,
+                requestedTargetCoordinates,
+                out movementTargetCoordinates
+            );
+        }
+        
+        private bool TryFindBestAdjacentCellToOccupiedTarget(
+            Vector2Int startCoordinates,
+            Vector2Int occupiedTargetCoordinates,
+            out Vector2Int bestCell
+        )
+        {
+            bestCell = default;
+
+            Vector2Int[] candidates =
+            {
+                occupiedTargetCoordinates + Vector2Int.up,
+                occupiedTargetCoordinates + Vector2Int.down,
+                occupiedTargetCoordinates + Vector2Int.left,
+                occupiedTargetCoordinates + Vector2Int.right,
+            };
+
+            bool foundCandidate = false;
+            int bestStepCount = int.MaxValue;
+            int bestTurnPenalty = int.MaxValue;
+
+            for (int i = 0; i < candidates.Length; i++)
+            {
+                Vector2Int candidate = candidates[i];
+
+                if (candidate != startCoordinates
+                    && !navigationGrid.IsWalkableForActor(candidate, playerGridMover.gameObject))
+                {
+                    continue;
+                }
+
+                bool pathWasFound = pathfinder.TryFindPath(
+                    startCoordinates,
+                    candidate,
+                    playerGridMover.FacingDirection,
+                    out List<Vector2Int> candidatePath,
+                    out int candidateTurnPenalty
+                );
+
+                if (!pathWasFound)
+                {
+                    continue;
+                }
+
+                int candidateStepCount = Mathf.Max(0, candidatePath.Count - 1);
+
+                bool candidateIsBetter =
+                    !foundCandidate
+                    || candidateStepCount < bestStepCount
+                    || candidateStepCount == bestStepCount
+                    && candidateTurnPenalty < bestTurnPenalty;
+
+                if (!candidateIsBetter)
+                {
+                    continue;
+                }
+
+                foundCandidate = true;
+                bestCell = candidate;
+                bestStepCount = candidateStepCount;
+                bestTurnPenalty = candidateTurnPenalty;
+            }
+
+            return foundCandidate;
         }
 
         private void ClearCurrentPath()

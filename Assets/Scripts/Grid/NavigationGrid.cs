@@ -259,6 +259,18 @@ namespace IsometricPathfinding.Navigation
             return occupancyManager != null && occupancyManager.IsOccupied(coordinates);
         }
 
+        public bool TryGetOccupant(Vector2Int coordinates, out GameObject actor)
+        {
+            actor = null;
+            
+            if (occupancyManager == null)
+            {
+                return false;
+            }
+
+            return occupancyManager.TryGetOccupant(coordinates, out actor);
+        }
+
         public bool IsOccupiedByOther(Vector2Int coordinates, GameObject actor)
         {
             return occupancyManager != null && occupancyManager.IsOccupiedByOther(coordinates, actor);

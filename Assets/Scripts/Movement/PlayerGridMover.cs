@@ -254,6 +254,16 @@ namespace IsometricPathfinding.Movement
 
                     return false;
                 }
+                
+                if (navigationGrid.IsOccupiedByOther(coordinates, gameObject))
+                {
+                    Debug.LogWarning(
+                        $"Movement path contains occupied cell {coordinates}.",
+                        this
+                    );
+
+                    return false;
+                }
 
                 if (index == 0)
                 {

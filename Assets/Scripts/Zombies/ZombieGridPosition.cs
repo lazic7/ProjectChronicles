@@ -28,7 +28,7 @@ namespace IsometricPathfinding.Zombies
             
             if (occupancyManager != null)
             {
-                occupancyManager.TryReister(gameObject, currentCell);
+                occupancyManager.TryRegister(gameObject, currentCell);
             }
 
             SnapToCurrentCell();

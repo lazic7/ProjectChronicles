@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Numerics;
 using UnityEngine;
 
 namespace IsometricPathfinding.Navigation
@@ -24,7 +23,12 @@ namespace IsometricPathfinding.Navigation
             return occupant != actor;
         }
 
-        public bool TryReister(GameObject actor, Vector2Int cell)
+        public bool TryGetOccupant(Vector2Int cell, out GameObject actor)
+        {
+            return occupants.TryGetValue(cell, out actor);
+        }
+
+        public bool TryRegister(GameObject actor, Vector2Int cell)
         {
             if (actor == null)
             {

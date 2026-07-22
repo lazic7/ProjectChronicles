@@ -37,9 +37,12 @@ namespace IsometricPathfinding.Zombies
 
         [SerializeField] private int movementPointsPerTurn = 3;
         
+        [SerializeField] [Min(0f)] private float alertDuration = 0.5f;
+        
         [SerializeField] private int turnPenaltyCost = 1;
 
         [SerializeField] private int reversePenaltyCost = 2;
+
 
         [Header("Roaming Settings")] 
         
@@ -51,10 +54,14 @@ namespace IsometricPathfinding.Zombies
 
         private float roamTimer;
 
+        private float alertTimer;
+
         private AStarPathfinder pathFinder;
 
         public ZombieState State => state;
         public bool IsActing => zombieGridMover.IsMoving;
+        
+        public Vector2Int CurrentCell => zombieGridPosition.CurrentCell;
 
         private void Awake()
         {
@@ -80,20 +87,26 @@ namespace IsometricPathfinding.Zombies
 
         private void Update()
         {
-            if (state == ZombieState.Dead)
+            switch (state)
             {
-                return;
-            }
-            if (state == ZombieState.Sleeping)
-            {
-                UpdateSleeping();
-                return;
-            }
+                case ZombieState.Dead:
+                    return;
 
-            if (state == ZombieState.Roaming)
-            {
-                UpdateRoaming();
-                return;
+                case ZombieState.Sleeping:
+                    UpdateSleeping();
+                    return;
+
+                case ZombieState.Roaming:
+                    UpdateRoaming();
+                    return;
+
+                case ZombieState.Alert:
+                    UpdateAlert();
+                    return;
+
+                case ZombieState.Combat:
+                    UpdateCombat();
+                    return;
             }
         }
 
@@ -109,21 +122,91 @@ namespace IsometricPathfinding.Zombies
 
         private void WakeUp()
         {
+            if (state == ZombieState.Dead || state == ZombieState.Combat || state == ZombieState.Alert)
+            {
+                return;
+            }
+
             state = ZombieState.Alert;
+            alertTimer = alertDuration;
+
+            Debug.Log($"{name} became alert.", this);
+        }
+        
+        private void UpdateAlert()
+        {
+            if (!IsPlayerInsideWakeRange())
+            {
+                state = ZombieState.Roaming;
+                ResetRoamTimer();
+
+                Debug.Log($"{name} lost the player and returned to roaming.", this);
+
+                return;
+            }
+
+            alertTimer -= Time.deltaTime;
+
+            if (alertTimer > 0f)
+            {
+                return;
+            }
+
+            EnterCombat();
+        }
+        
+        private void EnterCombat()
+        {
+            if (state == ZombieState.Dead || state == ZombieState.Combat)
+            {
+                return;
+            }
 
             if (dangerTurnController != null)
             {
                 dangerTurnController.EnterDangerMode(this);
+                return;
             }
-            else
-            {
-                Debug.LogWarning( $"{nameof(ZombieAgent)} on '{name}' woke up, but no DangerTurnController is assigned.", this);
-            }
+
+            state = ZombieState.Combat;
+
+            Debug.LogWarning(
+                $"{nameof(ZombieAgent)} on '{name}' entered combat, but no DangerTurnController is assigned.",
+                this
+            );
+        }
+        
+        private void UpdateCombat()
+        {
+            /*
+             * Combat zombies are controlled by DangerTurnController.
+             *
+             * Do not move toward the player here, because that would make
+             * zombies move every frame instead of only during their turn.
+             */
         }
 
         public void SetCombatState()
         {
+            if (state == ZombieState.Dead)
+            {
+                return;
+            }
+
             state = ZombieState.Combat;
+            alertTimer = 0f;
+        }
+        
+        public void SetRoamingState()
+        {
+            if (state == ZombieState.Dead)
+            {
+                return;
+            }
+
+            state = ZombieState.Roaming;
+            alertTimer = 0f;
+            ResetRoamTimer();
         }
 
         public void TakeTurn()
@@ -241,11 +324,6 @@ namespace IsometricPathfinding.Zombies
 
         private void UpdateRoaming()
         {
-            if (dangerTurnController != null && dangerTurnController.GameMode != GameMode.Exploration)
-            {
-                return;
-            }
-
             if (zombieGridMover.IsMoving)
             {
                 return;
@@ -256,7 +334,7 @@ namespace IsometricPathfinding.Zombies
                 WakeUp();
                 return;
             }
-            
+    
             roamTimer -= Time.deltaTime;
 
             if (roamTimer > 0f)
@@ -324,6 +402,7 @@ namespace IsometricPathfinding.Zombies
             wakeRange = Mathf.Max(0, wakeRange);
             attackRange = Mathf.Max(1, attackRange);
             movementPointsPerTurn = Mathf.Max(1, movementPointsPerTurn);
+            alertDuration = Mathf.Max(0f, alertDuration);
 
             minimumRoamDelay = Mathf.Max(0.1f, minimumRoamDelay);
             maximumRoamDelay = Mathf.Max(minimumRoamDelay, maximumRoamDelay);

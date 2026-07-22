@@ -57,7 +57,7 @@ namespace IsometricPathfinding.Movement
 
             if (occupancyManager != null)
             {
-                occupancyManager.TryReister(gameObject, currentCell);
+                occupancyManager.TryRegister(gameObject, currentCell);
             }
 
             SnapToCurrentCell();
