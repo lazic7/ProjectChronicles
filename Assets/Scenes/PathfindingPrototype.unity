@@ -739,6 +739,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::IsometricPathfinding.Combat.DangerTurnController
   playerGridMover: {fileID: 2140442443}
   playerGridPosition: {fileID: 2140442442}
+  zombieManager: {fileID: 1141772637}
   activeZombies: []
   gameMode: 0
   currentPhase: 0
@@ -889,6 +890,52 @@ MonoBehaviour:
   hoveredCell: {x: 0, y: 0}
   hoveredCellIsWalkable: 0
   logCellChanges: 0
+--- !u!1 &1141772636
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1141772638}
+  - component: {fileID: 1141772637}
+  m_Layer: 0
+  m_Name: ZombieManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1141772637
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1141772636}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8b2285e79d17597d09b2fc81b50ee925, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::IsometricPathfinding.Zombies.ZombieManager
+  registerSceneZombiesOnAwake: 1
+  zombies: []
+--- !u!4 &1141772638
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1141772636}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1488818775}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1204055396
 GameObject:
   m_ObjectHideFlags: 0
@@ -1326,6 +1373,7 @@ Transform:
   - {fileID: 531216935}
   - {fileID: 2064091748}
   - {fileID: 656351544}
+  - {fileID: 1141772638}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1572346630

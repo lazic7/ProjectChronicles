@@ -12,16 +12,20 @@ namespace IsometricPathfinding.Combat
     
     public sealed class DangerTurnController : MonoBehaviour
     {
+        [Header("Scene References")]
         [SerializeField] private PlayerGridMover playerGridMover;
 
         [SerializeField] private PlayerGridPosition playerGridPosition;
-        
+
+        [SerializeField] private ZombieManager zombieManager;
+
+        [Header("Runtime State")]
         [SerializeField] private List<ZombieAgent> activeZombies = new List<ZombieAgent>();
 
         [SerializeField] private GameMode gameMode = GameMode.Exploration;
 
         [SerializeField] private DangerTurnPhase currentPhase = DangerTurnPhase.None;
-        
+
         [Header("Danger Settings")]
         [SerializeField] [Min(0)] private int zombieJoinRange = 6;
 
@@ -33,6 +37,19 @@ namespace IsometricPathfinding.Combat
         
         private Coroutine zombieTurnRoutine;
 
+        private void Awake()
+        {
+            if (zombieManager == null)
+            {
+                zombieManager = ZombieManager.Instance;
+            }
+
+            if (!ValidateReferences())
+            {
+                enabled = false;
+            }
+        }
+        
         private void Update()
         {
             if (gameMode != GameMode.Danger)
@@ -61,6 +78,12 @@ namespace IsometricPathfinding.Combat
             if (playerGridMover != null)
             {
                 playerGridMover.MovementCompleted -= OnPlayerMovementCompleted;
+            }
+
+            if (zombieTurnRoutine != null)
+            {
+                StopCoroutine(zombieTurnRoutine);
+                zombieTurnRoutine = null;
             }
         }
 
@@ -92,6 +115,11 @@ namespace IsometricPathfinding.Combat
                 return;
             }
 
+            if (zombie.State == ZombieState.Dead)
+            {
+                return;
+            }
+
             if (activeZombies.Contains(zombie))
             {
                 return;
@@ -107,13 +135,25 @@ namespace IsometricPathfinding.Combat
         {
             RemoveInvalidOrEscapedZombies();
 
-            ZombieAgent[] allZombies = FindObjectsByType<ZombieAgent>(FindObjectsSortMode.None);
+            if (zombieManager == null)
+            {
+                return;
+            }
 
-            for (int i = 0; i < allZombies.Length; i++)
+            zombieManager.RemoveNullReferences();
+
+            IReadOnlyList<ZombieAgent> allZombies = zombieManager.Zombies;
+
+            for (int i = 0; i < allZombies.Count; i++)
             {
                 ZombieAgent zombie = allZombies[i];
 
                 if (zombie == null)
+                {
+                    continue;
+                }
+
+                if (zombie.State == ZombieState.Dead)
                 {
                     continue;
                 }
@@ -172,6 +212,17 @@ namespace IsometricPathfinding.Combat
         
         private void ExitDangerMode()
         {
+            ExitDangerMode(true);
+        }
+
+        private void ExitDangerMode(bool stopZombieTurnRoutine)
+        {
+            if (stopZombieTurnRoutine && zombieTurnRoutine != null)
+            {
+                StopCoroutine(zombieTurnRoutine);
+                zombieTurnRoutine = null;
+            }
+
             for (int i = 0; i < activeZombies.Count; i++)
             {
                 ZombieAgent zombie = activeZombies[i];
@@ -197,6 +248,7 @@ namespace IsometricPathfinding.Combat
             {
                 return;
             }
+
             if (currentPhase != DangerTurnPhase.PlayerTurn)
             {
                 return;
@@ -204,36 +256,60 @@ namespace IsometricPathfinding.Combat
 
             if (zombieTurnRoutine != null)
             {
-                StopCoroutine(zombieTurnRoutine);
+                return;
             }
+
             zombieTurnRoutine = StartCoroutine(RunZombieTurn());
         }
 
         private IEnumerator RunZombieTurn()
         {
             currentPhase = DangerTurnPhase.ZombieTurn;
-            
-            for (int i = 0; i < activeZombies.Count; i++)
+
+            int zombieIndex = 0;
+
+            while (gameMode == GameMode.Danger && zombieIndex < activeZombies.Count)
             {
                 RefreshActiveZombies();
 
-                if (i >= activeZombies.Count)
+                if (gameMode != GameMode.Danger)
                 {
                     break;
                 }
 
-                ZombieAgent zombie = activeZombies[i];
+                if (zombieIndex >= activeZombies.Count)
+                {
+                    break;
+                }
+
+                ZombieAgent zombie = activeZombies[zombieIndex];
+                zombieIndex++;
 
                 if (zombie == null)
                 {
                     continue;
                 }
 
+                if (zombie.State == ZombieState.Dead)
+                {
+                    continue;
+                }
+
+                if (!activeZombies.Contains(zombie))
+                {
+                    continue;
+                }
+
                 zombie.TakeTurn();
 
-                while (zombie.IsActing)
+                while (gameMode == GameMode.Danger && zombie != null && zombie.IsActing)
                 {
                     yield return null;
+                }
+
+                if (gameMode != GameMode.Danger)
+                {
+                    break;
                 }
 
                 yield return new WaitForSeconds(0.15f);
@@ -243,8 +319,8 @@ namespace IsometricPathfinding.Combat
 
             if (activeZombies.Count == 0)
             {
-                ExitDangerMode();
                 zombieTurnRoutine = null;
+                ExitDangerMode(false);
                 yield break;
             }
 
@@ -263,6 +339,46 @@ namespace IsometricPathfinding.Combat
         {
             zombieJoinRange = Mathf.Max(0, zombieJoinRange);
             dangerExitRange = Mathf.Max(zombieJoinRange, dangerExitRange);
+        }
+        
+        private bool ValidateReferences()
+        {
+            bool referencesAreValid = true;
+
+            if (playerGridMover == null)
+            {
+                Debug.LogError(
+                    $"{nameof(DangerTurnController)} on '{name}' is missing the " +
+                    $"{nameof(PlayerGridMover)} reference.",
+                    this
+                );
+
+                referencesAreValid = false;
+            }
+
+            if (playerGridPosition == null)
+            {
+                Debug.LogError(
+                    $"{nameof(DangerTurnController)} on '{name}' is missing the " +
+                    $"{nameof(PlayerGridPosition)} reference.",
+                    this
+                );
+
+                referencesAreValid = false;
+            }
+
+            if (zombieManager == null)
+            {
+                Debug.LogError(
+                    $"{nameof(DangerTurnController)} on '{name}' is missing the " +
+                    $"{nameof(ZombieManager)} reference.",
+                    this
+                );
+
+                referencesAreValid = false;
+            }
+
+            return referencesAreValid;
         }
     }
 }

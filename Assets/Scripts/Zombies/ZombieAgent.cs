@@ -74,6 +74,12 @@ namespace IsometricPathfinding.Zombies
             {
                 zombieGridMover = GetComponent<ZombieGridMover>();
             }
+            
+            if (!ValidateReferences())
+            {
+                enabled = false;
+                return;
+            }
 
             pathFinder = new AStarPathfinder(
                 navigationGrid, 
@@ -108,6 +114,26 @@ namespace IsometricPathfinding.Zombies
                     UpdateCombat();
                     return;
             }
+        }
+        
+        private void OnEnable()
+        {
+            if (ZombieManager.Instance == null)
+            {
+                return;
+            }
+
+            ZombieManager.Instance.Register(this);
+        }
+
+        private void OnDisable()
+        {
+            if (ZombieManager.Instance == null)
+            {
+                return;
+            }
+
+            ZombieManager.Instance.Unregister(this);
         }
 
         private void UpdateSleeping()
@@ -411,6 +437,68 @@ namespace IsometricPathfinding.Zombies
 
             turnPenaltyCost = Mathf.Max(0, turnPenaltyCost);
             reversePenaltyCost = Mathf.Max(turnPenaltyCost, reversePenaltyCost);
+        }
+        
+        private bool ValidateReferences()
+        {
+            bool referencesAreValid = true;
+
+            if (navigationGrid == null)
+            {
+                Debug.LogError(
+                    $"{nameof(ZombieAgent)} on '{name}' is missing the " +
+                    $"{nameof(NavigationGrid)} reference.",
+                    this
+                );
+
+                referencesAreValid = false;
+            }
+
+            if (playerGridPosition == null)
+            {
+                Debug.LogError(
+                    $"{nameof(ZombieAgent)} on '{name}' is missing the " +
+                    $"{nameof(PlayerGridPosition)} reference.",
+                    this
+                );
+
+                referencesAreValid = false;
+            }
+
+            if (dangerTurnController == null)
+            {
+                Debug.LogError(
+                    $"{nameof(ZombieAgent)} on '{name}' is missing the " +
+                    $"{nameof(DangerTurnController)} reference.",
+                    this
+                );
+
+                referencesAreValid = false;
+            }
+
+            if (zombieGridPosition == null)
+            {
+                Debug.LogError(
+                    $"{nameof(ZombieAgent)} on '{name}' is missing the " +
+                    $"{nameof(ZombieGridPosition)} component.",
+                    this
+                );
+
+                referencesAreValid = false;
+            }
+
+            if (zombieGridMover == null)
+            {
+                Debug.LogError(
+                    $"{nameof(ZombieAgent)} on '{name}' is missing the " +
+                    $"{nameof(ZombieGridMover)} component.",
+                    this
+                );
+
+                referencesAreValid = false;
+            }
+
+            return referencesAreValid;
         }
     }
 }
