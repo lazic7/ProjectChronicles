@@ -29,6 +29,9 @@ namespace IsometricPathfinding.Combat
         
         public GameMode GameMode => gameMode;
         public DangerTurnPhase CurrentPhase => currentPhase;
+        public bool IsInDangerMode => gameMode == GameMode.Danger;
+        
+        private Coroutine zombieTurnRoutine;
 
         private void Update()
         {
@@ -47,12 +50,18 @@ namespace IsometricPathfinding.Combat
 
         private void OnEnable()
         {
-            playerGridMover.MovementCompleted += OnPlayerMovementCompleted;
+            if (playerGridMover != null)
+            {
+                playerGridMover.MovementCompleted += OnPlayerMovementCompleted;
+            }
         }
 
         private void OnDisable()
         {
-            playerGridMover.MovementCompleted -= OnPlayerMovementCompleted;
+            if (playerGridMover != null)
+            {
+                playerGridMover.MovementCompleted -= OnPlayerMovementCompleted;
+            }
         }
 
         public void EnterDangerMode(ZombieAgent triggeringZombie)
@@ -193,7 +202,11 @@ namespace IsometricPathfinding.Combat
                 return;
             }
 
-            StartCoroutine(RunZombieTurn());
+            if (zombieTurnRoutine != null)
+            {
+                StopCoroutine(zombieTurnRoutine);
+            }
+            zombieTurnRoutine = StartCoroutine(RunZombieTurn());
         }
 
         private IEnumerator RunZombieTurn()
@@ -231,12 +244,19 @@ namespace IsometricPathfinding.Combat
             if (activeZombies.Count == 0)
             {
                 ExitDangerMode();
+                zombieTurnRoutine = null;
                 yield break;
             }
 
             currentPhase = DangerTurnPhase.PlayerTurn;
+            zombieTurnRoutine = null;
 
             Debug.Log("Player turn started.", this);
+        }
+        
+        public bool IsZombieActive(ZombieAgent zombie)
+        {
+            return zombie != null && activeZombies.Contains(zombie);
         }
         
         private void OnValidate()
