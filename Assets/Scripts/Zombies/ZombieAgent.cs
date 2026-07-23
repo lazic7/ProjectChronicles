@@ -47,6 +47,8 @@ namespace IsometricPathfinding.Zombies
         [SerializeField] private int turnPenaltyCost = 1;
 
         [SerializeField] private int reversePenaltyCost = 2;
+        
+        [SerializeField] [Range(0f, 1f)] private float attackMissChance = 0.25f;
 
 
         [Header("Roaming Settings")] 
@@ -434,15 +436,26 @@ namespace IsometricPathfinding.Zombies
         
         private void AttackPlayer()
         {
-            FacePlayerBeforeAttack();
+            FacePlayerAndZombieBeforeAttack();
 
-            Debug.Log($"{name} attacks player.", this);
+            if (!DoesAttackHit())
+            {
+                Debug.Log($"{name} attacks player but misses.", this);
+                return;
+            }
+
+            Debug.Log($"{name} attacks player and hits.", this);
 
             // Later:
             // playerHealth.TakeDamage(damage);
         }
         
-        private void FacePlayerBeforeAttack()
+        private bool DoesAttackHit()
+        {
+            return UnityEngine.Random.value >= attackMissChance;
+        }
+        
+        private void FacePlayerAndZombieBeforeAttack()
         {
             Vector2Int zombieCell = zombieGridPosition.CurrentCell;
             Vector2Int playerCell = playerGridPosition.CurrentCell;
@@ -723,6 +736,8 @@ namespace IsometricPathfinding.Zombies
             facingDetectionRange = Mathf.Max(wakeRange, facingDetectionRange);
 
             attackRange = Mathf.Max(1, attackRange);
+            attackMissChance = Mathf.Clamp01(attackMissChance);
+            
             movementPointsPerTurn = Mathf.Max(1, movementPointsPerTurn);
             alertDuration = Mathf.Max(0f, alertDuration);
 
