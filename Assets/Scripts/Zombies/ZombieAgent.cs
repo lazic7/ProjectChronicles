@@ -55,9 +55,11 @@ namespace IsometricPathfinding.Zombies
         private float roamTimer;
 
         private float alertTimer;
-
+        
+        private bool shouldAttackAfterMovement;
+        
         private AStarPathfinder pathFinder;
-
+        
         public ZombieState State => state;
         public bool IsActing => zombieGridMover.IsMoving;
         
@@ -118,6 +120,12 @@ namespace IsometricPathfinding.Zombies
         
         private void OnEnable()
         {
+            if (zombieGridMover != null)
+            {
+                zombieGridMover.MovementCompleted += OnZombieMovementCompleted;
+            }
+
+            
             if (ZombieManager.Instance == null)
             {
                 return;
@@ -128,6 +136,13 @@ namespace IsometricPathfinding.Zombies
 
         private void OnDisable()
         {
+            if (zombieGridMover != null)
+            {
+                zombieGridMover.MovementCompleted -= OnZombieMovementCompleted;
+            }
+
+            ClearAttackAfterMovement();
+    
             if (ZombieManager.Instance == null)
             {
                 return;
@@ -230,6 +245,8 @@ namespace IsometricPathfinding.Zombies
                 return;
             }
 
+            ClearAttackAfterMovement();
+
             state = ZombieState.Roaming;
             alertTimer = 0f;
             ResetRoamTimer();
@@ -237,6 +254,8 @@ namespace IsometricPathfinding.Zombies
 
         public void TakeTurn()
         {
+            ClearAttackAfterMovement();
+            
             if (state == ZombieState.Dead)
             {
                 return;
@@ -250,8 +269,50 @@ namespace IsometricPathfinding.Zombies
                 return;
             }
 
-            MoveTowardPlayer();
+            bool movementStarted = TryMoveTowardPlayer(out int remainingMovementPoints);
 
+            if (!movementStarted)
+            {
+                return;
+            }
+
+            if (remainingMovementPoints > 0)
+            {
+                QueueAttackAfterMovement();
+            }
+
+        }
+        
+        private void QueueAttackAfterMovement()
+        {
+            shouldAttackAfterMovement = true;
+        }
+
+        private void ClearAttackAfterMovement()
+        {
+            shouldAttackAfterMovement = false;
+        }
+        
+        private void OnZombieMovementCompleted(object sender, EventArgs e)
+        {
+            if (!shouldAttackAfterMovement)
+            {
+                return;
+            }
+
+            ClearAttackAfterMovement();
+
+            if (state != ZombieState.Combat)
+            {
+                return;
+            }
+
+            if (!IsPlayerInAttackRange())
+            {
+                return;
+            }
+
+            AttackPlayer();
         }
 
         private bool IsPlayerInsideWakeRange()
@@ -276,21 +337,46 @@ namespace IsometricPathfinding.Zombies
             // playerHealth.TakeDamage(damage);
         }
 
-        private void MoveTowardPlayer()
+        private bool TryMoveTowardPlayer(out int remainingMovementPoints)
         {
+            remainingMovementPoints = 0;
+
             Vector2Int start = zombieGridPosition.CurrentCell;
             Vector2Int target = FindBestAdjacentCellToPlayer();
 
-            bool pathFound = pathFinder.TryFindPath(start, target, GridDirection.None, out List<Vector2Int> path, out int turnPenalty);
+            bool pathFound = pathFinder.TryFindPath(
+                start,
+                target,
+                GridDirection.None,
+                out List<Vector2Int> path,
+                out _
+            );
 
             if (!pathFound || path.Count < 2)
             {
-                return;
+                return false;
             }
 
             List<Vector2Int> limitedPath = LimitPathToMovementPoints(path, movementPointsPerTurn);
 
-            zombieGridMover.TryMoveAlongPath(limitedPath);
+            if (limitedPath.Count < 2)
+            {
+                return false;
+            }
+
+            int usedMovementPoints = limitedPath.Count - 1;
+
+            remainingMovementPoints = Mathf.Max(0, movementPointsPerTurn - usedMovementPoints);
+
+            bool movementStarted = zombieGridMover.TryMoveAlongPath(limitedPath);
+
+            if (!movementStarted)
+            {
+                remainingMovementPoints = 0;
+                return false;
+            }
+
+            return true;
         }
 
         private Vector2Int FindBestAdjacentCellToPlayer()
