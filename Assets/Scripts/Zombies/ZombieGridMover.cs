@@ -88,6 +88,16 @@ namespace IsometricPathfinding.Zombies
 
            return true;
        }
+       
+       public void FaceDirection(GridDirection direction)
+       {
+           if (direction == GridDirection.None)
+           {
+               return;
+           }
+
+           facingDirection = direction;
+       }
 
        private void MoveTowardsCurrentTarget()
        {

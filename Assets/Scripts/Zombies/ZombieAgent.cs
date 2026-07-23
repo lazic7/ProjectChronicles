@@ -19,6 +19,9 @@ namespace IsometricPathfinding.Zombies
         
         [SerializeField] private PlayerGridPosition playerGridPosition;
         
+        [SerializeField] private PlayerGridMover playerGridMover;
+
+        
         [Header("Zombie Components")]
         
         [SerializeField] private ZombieGridPosition zombieGridPosition;
@@ -83,6 +86,11 @@ namespace IsometricPathfinding.Zombies
             if (zombieGridMover == null)
             {
                 zombieGridMover = GetComponent<ZombieGridMover>();
+            }
+            
+            if (playerGridMover == null && playerGridPosition != null)
+            {
+                playerGridMover = playerGridPosition.GetComponent<PlayerGridMover>();
             }
             
             if (!ValidateReferences())
@@ -426,10 +434,29 @@ namespace IsometricPathfinding.Zombies
         
         private void AttackPlayer()
         {
+            FacePlayerBeforeAttack();
+
             Debug.Log($"{name} attacks player.", this);
 
             // Later:
             // playerHealth.TakeDamage(damage);
+        }
+        
+        private void FacePlayerBeforeAttack()
+        {
+            Vector2Int zombieCell = zombieGridPosition.CurrentCell;
+            Vector2Int playerCell = playerGridPosition.CurrentCell;
+
+            GridDirection zombieFacingDirection = GetDirectionTowardCell(zombieCell, playerCell);
+
+            GridDirection playerFacingDirection = GetDirectionTowardCell(playerCell, zombieCell);
+
+            zombieGridMover.FaceDirection(zombieFacingDirection);
+
+            if (playerGridMover != null)
+            {                              
+                playerGridMover.FaceDirection(playerFacingDirection);
+            }
         }
 
         private bool TryMoveTowardPlayer(out int remainingMovementPoints)
@@ -559,6 +586,49 @@ namespace IsometricPathfinding.Zombies
                     return Vector2Int.zero;
             }
         }
+        
+        private static GridDirection GetPrimaryDirectionFromDifference(Vector2Int difference)
+        {
+            if (difference == Vector2Int.zero)
+            {
+                return GridDirection.None;
+            }
+
+            if (Mathf.Abs(difference.x) >= Mathf.Abs(difference.y))
+            {
+                return difference.x > 0
+                    ? GridDirection.Right
+                    : GridDirection.Left;
+            }
+
+            return difference.y > 0
+                ? GridDirection.Up
+                : GridDirection.Down;
+        }
+        
+        private static GridDirection GetDirectionTowardCell(Vector2Int fromCell, Vector2Int toCell)
+        {
+            Vector2Int difference = toCell - fromCell;
+
+            if (difference == Vector2Int.zero)
+            {
+                return GridDirection.None;
+            }
+
+            int absoluteX = Mathf.Abs(difference.x);
+            int absoluteY = Mathf.Abs(difference.y);
+
+            if (absoluteX >= absoluteY)
+            {
+                return difference.x > 0
+                    ? GridDirection.Right
+                    : GridDirection.Left;
+            }
+
+            return difference.y > 0
+                ? GridDirection.Up
+                : GridDirection.Down;
+        }
 
         private static int GetGridDistance(Vector2Int a, Vector2Int b)
         {
@@ -685,6 +755,17 @@ namespace IsometricPathfinding.Zombies
                 Debug.LogError(
                     $"{nameof(ZombieAgent)} on '{name}' is missing the " +
                     $"{nameof(PlayerGridPosition)} reference.",
+                    this
+                );
+
+                referencesAreValid = false;
+            }
+            
+            if (playerGridMover == null)
+            {
+                Debug.LogError(
+                    $"{nameof(ZombieAgent)} on '{name}' is missing the " +
+                    $"{nameof(PlayerGridMover)} reference.",
                     this
                 );
 

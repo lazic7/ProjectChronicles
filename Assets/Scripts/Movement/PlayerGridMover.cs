@@ -84,6 +84,16 @@ namespace IsometricPathfinding.Movement
 
             MoveTowardsCurrentTarget();
         }
+        
+        public void FaceDirection(GridDirection direction)
+        {
+            if (direction == GridDirection.None)
+            {
+                return;
+            }
+
+            facingDirection = direction;
+        }
 
         public bool TryMoveAlongPath(IReadOnlyList<Vector2Int> path)
         {
