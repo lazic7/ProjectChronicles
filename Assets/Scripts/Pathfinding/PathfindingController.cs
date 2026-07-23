@@ -33,6 +33,14 @@ namespace IsometricPathfinding.Pathfinding
         [SerializeField] [Min(0)] private int turnPenaltyCost = 1;
 
         [SerializeField] [Min(0)] private int reversePenaltyCost = 2;
+        
+        [SerializeField] private bool preferDiagonalZigZag = true;
+
+        [SerializeField] [Min(0)] private int diagonalZigZagBalanceCost = 10;
+
+        [SerializeField] private bool preferObstacleHugging = true;
+
+        [SerializeField] [Min(0)] private int obstacleHuggingReward = 1;
 
         [Header("Runtime State")]
         
@@ -253,6 +261,7 @@ namespace IsometricPathfinding.Pathfinding
                 startCoordinates,
                 targetCoordinates,
                 pathInitialFacingDirection,
+                BuildPlayerPathPreferences(startCoordinates, targetCoordinates),
                 out List<Vector2Int> foundPath,
                 out int foundTurnPenalty
             );
@@ -292,6 +301,22 @@ namespace IsometricPathfinding.Pathfinding
                     this
                 );
             }
+        }
+        
+        private PathPreferenceSettings BuildPlayerPathPreferences(
+            Vector2Int startCoordinates,
+            Vector2Int targetCoordinates
+        )
+        {
+            bool targetIsDiagonal =
+                startCoordinates.x != targetCoordinates.x
+                && startCoordinates.y != targetCoordinates.y;
+
+            return new PathPreferenceSettings(
+                preferDiagonalZigZag && targetIsDiagonal,
+                diagonalZigZagBalanceCost,
+                preferObstacleHugging ? obstacleHuggingReward : 0
+            );
         }
 
         private bool TryResolveMovementTarget(
@@ -360,6 +385,7 @@ namespace IsometricPathfinding.Pathfinding
                     startCoordinates,
                     candidate,
                     playerGridMover.FacingDirection,
+                    BuildPlayerPathPreferences(startCoordinates, candidate),
                     out List<Vector2Int> candidatePath,
                     out int candidateTurnPenalty
                 );
@@ -553,6 +579,10 @@ namespace IsometricPathfinding.Pathfinding
             reversePenaltyCost = Mathf.Max(turnPenaltyCost, reversePenaltyCost);
             
             playerMovementPoints = Mathf.Max(1, playerMovementPoints);
+            
+            diagonalZigZagBalanceCost = Mathf.Max(0, diagonalZigZagBalanceCost);
+
+            obstacleHuggingReward = Mathf.Max(0, obstacleHuggingReward);
         }
     }
 }
