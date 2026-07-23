@@ -32,6 +32,8 @@ namespace IsometricPathfinding.Zombies
         [SerializeField] private ZombieState state = ZombieState.Sleeping;
 
         [SerializeField] private int wakeRange = 4;
+        
+        [SerializeField] private int facingDetectionRange = 8;
 
         [SerializeField] private int attackRange = 1;
 
@@ -51,6 +53,8 @@ namespace IsometricPathfinding.Zombies
         [SerializeField] private float maximumRoamDelay = 3.5f;
 
         [SerializeField] private int roamStepCount = 1;
+        
+        [SerializeField] private bool logPathResults;
 
         private float roamTimer;
 
@@ -64,6 +68,10 @@ namespace IsometricPathfinding.Zombies
         public bool IsActing => zombieGridMover.IsMoving;
         
         public Vector2Int CurrentCell => zombieGridPosition.CurrentCell;
+        
+        public GridDirection CurrentMovementDirection => zombieGridMover.CurrentMovementDirection;
+
+        public GridDirection FacingDirection => zombieGridMover.FacingDirection;
 
         private void Awake()
         {
@@ -176,13 +184,23 @@ namespace IsometricPathfinding.Zombies
         
         private void UpdateAlert()
         {
-            if (!IsPlayerInsideWakeRange())
+            bool playerIsClose = IsPlayerInsideWakeRange();
+            bool playerIsSeen = CanSeePlayerInFacingDirection();
+
+            if (!playerIsClose && !playerIsSeen)
             {
                 state = ZombieState.Roaming;
                 ResetRoamTimer();
 
                 Debug.Log($"{name} lost the player and returned to roaming.", this);
 
+                return;
+            }
+
+            if (playerIsSeen && !playerIsClose)
+            {
+                Debug.Log($"{name} saw the player from farther away while alert.", this);
+                EnterCombat();
                 return;
             }
 
@@ -314,6 +332,83 @@ namespace IsometricPathfinding.Zombies
 
             AttackPlayer();
         }
+        
+        private bool CanSeePlayerInFacingDirection()
+        {
+            if (zombieGridPosition == null || playerGridPosition == null)
+            {
+                return false;
+            }
+
+            GridDirection facing = FacingDirection;
+
+            if (facing == GridDirection.None)
+            {
+                return false;
+            }
+
+            Vector2Int facingVector = GetVectorFromDirection(facing);
+
+            if (facingVector == Vector2Int.zero)
+            {
+                return false;
+            }
+
+            Vector2Int zombieCell = zombieGridPosition.CurrentCell;
+            Vector2Int playerCell = playerGridPosition.CurrentCell;
+
+            Vector2Int difference = playerCell - zombieCell;
+
+            /*
+             * The player must be exactly in the same row or column
+             * that the zombie is facing.
+             *
+             * Example:
+             * Zombie facing Right can only see player if:
+             * - player is on same Y
+             * - player X is greater than zombie X
+             */
+            bool playerIsOnFacingLine =
+                facingVector.x != 0
+                    ? difference.y == 0 && Math.Sign(difference.x) == facingVector.x
+                    : difference.x == 0 && Math.Sign(difference.y) == facingVector.y;
+
+            if (!playerIsOnFacingLine)
+            {
+                return false;
+            }
+
+            int distance = GetGridDistance(zombieCell, playerCell);
+
+            if (distance <= 0 || distance > facingDetectionRange)
+            {
+                return false;
+            }
+
+            /*
+             * Optional but useful:
+             * Check that there are no blocked grid cells between
+             * the zombie and the player.
+             */
+            Vector2Int currentCell = zombieCell;
+
+            for (int step = 1; step <= distance; step++)
+            {
+                currentCell += facingVector;
+
+                if (currentCell == playerCell)
+                {
+                    return true;
+                }
+
+                if (!navigationGrid.IsWalkable(currentCell))
+                {
+                    return false;
+                }
+            }
+
+            return false;
+        }
 
         private bool IsPlayerInsideWakeRange()
         {
@@ -344,13 +439,28 @@ namespace IsometricPathfinding.Zombies
             Vector2Int start = zombieGridPosition.CurrentCell;
             Vector2Int target = FindBestAdjacentCellToPlayer();
 
+            GridDirection initialFacingDirection = FacingDirection;
+
+            if (initialFacingDirection == GridDirection.None)
+            {
+                initialFacingDirection = GridDirection.Down;
+            }
+
             bool pathFound = pathFinder.TryFindPath(
                 start,
                 target,
-                GridDirection.None,
+                initialFacingDirection,
                 out List<Vector2Int> path,
-                out _
+                out int turnPenalty
             );
+
+            if (logPathResults)
+            {
+                Debug.Log(
+                    $"{name} path to player. Facing: {FacingDirection}. Turn penalty: {turnPenalty}.",
+                    this
+                );
+            }
 
             if (!pathFound || path.Count < 2)
             {
@@ -428,6 +538,27 @@ namespace IsometricPathfinding.Zombies
 
             return limitedPath;
         }
+        
+        private static Vector2Int GetVectorFromDirection(GridDirection direction)
+        {
+            switch (direction)
+            {
+                case GridDirection.Up:
+                    return Vector2Int.up;
+
+                case GridDirection.Down:
+                    return Vector2Int.down;
+
+                case GridDirection.Left:
+                    return Vector2Int.left;
+
+                case GridDirection.Right:
+                    return Vector2Int.right;
+
+                default:
+                    return Vector2Int.zero;
+            }
+        }
 
         private static int GetGridDistance(Vector2Int a, Vector2Int b)
         {
@@ -446,7 +577,14 @@ namespace IsometricPathfinding.Zombies
                 WakeUp();
                 return;
             }
-    
+
+            if (CanSeePlayerInFacingDirection())
+            {
+                Debug.Log($"{name} saw the player while roaming.", this);
+                EnterCombat();
+                return;
+            }
+
             roamTimer -= Time.deltaTime;
 
             if (roamTimer > 0f)
@@ -512,6 +650,8 @@ namespace IsometricPathfinding.Zombies
         private void OnValidate()
         {
             wakeRange = Mathf.Max(0, wakeRange);
+            facingDetectionRange = Mathf.Max(wakeRange, facingDetectionRange);
+
             attackRange = Mathf.Max(1, attackRange);
             movementPointsPerTurn = Mathf.Max(1, movementPointsPerTurn);
             alertDuration = Mathf.Max(0f, alertDuration);
