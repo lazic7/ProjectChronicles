@@ -96,6 +96,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::IsometricPathfinding.Zombies.ZombieAgent
   navigationGrid: {fileID: 0}
   playerGridPosition: {fileID: 0}
+  playerGridMover: {fileID: 0}
   zombieGridPosition: {fileID: 7526245490463220643}
   zombieGridMover: {fileID: 7274352269927764197}
   dangerTurnController: {fileID: 0}
@@ -107,6 +108,7 @@ MonoBehaviour:
   alertDuration: 0.5
   turnPenaltyCost: 1
   reversePenaltyCost: 2
+  attackMissChance: 0.25
   minimumRoamDelay: 1.5
   maximumRoamDelay: 3.5
   roamStepCount: 1

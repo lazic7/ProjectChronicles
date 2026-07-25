@@ -573,13 +573,27 @@ MonoBehaviour:
   mouseTileSelector: {fileID: 1028042714}
   pathPreviewRenderer: {fileID: 125657304}
   dangerTurnController: {fileID: 656351545}
-  turnPenaltyCost: 1
-  reversePenaltyCost: 2
+  stepCost: 100
+  heuristicCost: 60
+  turnPenaltyCost: 8
+  reversePenaltyCost: 20
+  preferDiagonalZigZag: 1
+  diagonalZigZagBalanceCost: 12
+  preferObstacleHugging: 1
+  obstacleHuggingReward: 8
+  directionalProgressReward: 4
+  maximumExtraStepCount: 4
   hasValidPath: 0
   currentTarget: {x: 0, y: 0}
   movementStepCount: 0
   pathInitialFacingDirection: 0
   turnPenaltyScore: 0
+  tacticalScore: 0
+  stepScore: 0
+  heuristicScore: 0
+  zigZagScore: 0
+  obstacleHuggingScore: 0
+  directionalProgressScore: 0
   playerMovementPoints: 5
   logPathResults: 0
 --- !u!1 &543310135

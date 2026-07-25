@@ -4,11 +4,12 @@ using IsometricPathfinding.Combat;
 using IsometricPathfinding.Input;
 using IsometricPathfinding.Movement;
 using IsometricPathfinding.Navigation;
-using IsometricPathfinding.Zombies;
 using IsometricPathfinding.UI;
+using IsometricPathfinding.Zombies;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+// ReSharper disable once CheckNamespace
 namespace IsometricPathfinding.Pathfinding
 {
     [DisallowMultipleComponent]
@@ -27,26 +28,32 @@ namespace IsometricPathfinding.Pathfinding
         [SerializeField] private PathPreviewRenderer pathPreviewRenderer;
 
         [SerializeField] private DangerTurnController dangerTurnController;
-
-        [Header("Path Preferences")]
         
-        [SerializeField] [Min(0)] private int turnPenaltyCost = 1;
+        [Header("Tactical Path Costs")]
 
-        [SerializeField] [Min(0)] private int reversePenaltyCost = 2;
-        
+        [SerializeField] [Min(1)] private int stepCost = 100;
+
+        [SerializeField] [Min(0)] private int heuristicCost = 60;
+
+        [SerializeField] [Min(0)] private int turnPenaltyCost = 8;
+
+        [SerializeField] [Min(0)] private int reversePenaltyCost = 20;
+
         [SerializeField] private bool preferDiagonalZigZag = true;
 
-        [SerializeField] [Min(0)] private int diagonalZigZagBalanceCost = 10;
+        [SerializeField] [Min(0)] private int diagonalZigZagBalanceCost = 12;
 
         [SerializeField] private bool preferObstacleHugging = true;
 
-        [SerializeField] [Min(0)] private int obstacleHuggingReward = 1;
+        [SerializeField] [Min(0)] private int obstacleHuggingReward = 8;
+
+        [SerializeField] [Min(0)] private int directionalProgressReward = 4;
+
+        [SerializeField] [Min(0)] private int maximumExtraStepCount = 4;
 
         [Header("Runtime State")]
-        
-        [SerializeField] private bool hasValidPath;
 
-        [SerializeField] private Vector2Int currentTarget;
+        [SerializeField] private bool hasValidPath;
 
         [SerializeField] private int movementStepCount;
 
@@ -54,12 +61,24 @@ namespace IsometricPathfinding.Pathfinding
 
         [SerializeField] private int turnPenaltyScore;
 
+        [SerializeField] private int tacticalScore;
+
+        [SerializeField] private int stepScore;
+
+        [SerializeField] private int heuristicScore;
+
+        [SerializeField] private int zigZagScore;
+
+        [SerializeField] private int obstacleHuggingScore;
+
+        [SerializeField] private int directionalProgressScore;
+
         [SerializeField] private int playerMovementPoints = 5;
 
         [Header("Debug")]
-        
+
         [SerializeField] private bool logPathResults;
-        
+
         private AStarPathfinder pathfinder;
 
         private readonly List<Vector2Int> currentPath = new List<Vector2Int>();
@@ -70,12 +89,6 @@ namespace IsometricPathfinding.Pathfinding
         private Vector2Int lastStartCoordinates;
         private Vector2Int lastTargetCoordinates;
 
-        public bool HasValidPath => hasValidPath;
-
-        public IReadOnlyList<Vector2Int> CurrentPath => currentPath;
-
-        public int MovementStepCount => movementStepCount;
-
         private void Awake()
         {
             if (!ValidateReferences())
@@ -85,7 +98,7 @@ namespace IsometricPathfinding.Pathfinding
             }
 
             pathfinder = new AStarPathfinder(
-                navigationGrid, 
+                navigationGrid,
                 turnPenaltyCost,
                 reversePenaltyCost,
                 cell => navigationGrid.IsWalkableForActor(cell, playerGridMover.gameObject)
@@ -149,17 +162,8 @@ namespace IsometricPathfinding.Pathfinding
 
                 lastTargetWasWalkable = targetIsWalkable;
 
-                currentTarget = targetCoordinates;
-
-                CalculateAndDisplayPath(startCoordinates, targetCoordinates, targetIsWalkable);
+                CalculateAndDisplayPath(startCoordinates, targetCoordinates);
             }
-
-            /*
-             * Klik provjeravamo i kada rezultat nije nov.
-             *
-             * Korisnik će često prvo nekoliko trenutaka
-             * držati miš nad ciljem, a zatim kliknuti.
-             */
 
             HandleMovementClick();
         }
@@ -193,7 +197,9 @@ namespace IsometricPathfinding.Pathfinding
                 return;
             }
             
-            if(dangerTurnController != null && dangerTurnController.GameMode == GameMode.Danger && dangerTurnController.CurrentPhase != DangerTurnPhase.PlayerTurn)
+            if (dangerTurnController != null
+                && dangerTurnController.GameMode == GameMode.Danger
+                && dangerTurnController.CurrentPhase != DangerTurnPhase.PlayerTurn)
             {
                 return;
             }
@@ -217,8 +223,7 @@ namespace IsometricPathfinding.Pathfinding
 
         private void CalculateAndDisplayPath(
             Vector2Int startCoordinates,
-            Vector2Int targetCoordinates,
-            bool targetIsWalkable
+            Vector2Int targetCoordinates
         )
         {
             currentPath.Clear();
@@ -226,6 +231,12 @@ namespace IsometricPathfinding.Pathfinding
             hasValidPath = false;
             movementStepCount = 0;
             turnPenaltyScore = 0;
+            tacticalScore = 0;
+            stepScore = 0;
+            heuristicScore = 0;
+            zigZagScore = 0;
+            obstacleHuggingScore = 0;
+            directionalProgressScore = 0;
 
             pathInitialFacingDirection = playerGridMover.FacingDirection;
 
@@ -244,9 +255,7 @@ namespace IsometricPathfinding.Pathfinding
                 return;
             }
 
-            currentTarget = targetCoordinates;
-
-            targetIsWalkable = navigationGrid.IsWalkable(targetCoordinates);
+            bool targetIsWalkable = navigationGrid.IsWalkable(targetCoordinates);
 
             if (!targetIsWalkable)
             {
@@ -261,9 +270,8 @@ namespace IsometricPathfinding.Pathfinding
                 startCoordinates,
                 targetCoordinates,
                 pathInitialFacingDirection,
-                BuildPlayerPathPreferences(startCoordinates, targetCoordinates),
-                out List<Vector2Int> foundPath,
-                out int foundTurnPenalty
+                BuildPlayerPathProfile(startCoordinates, targetCoordinates),
+                out TacticalPathResult pathResult
             );
 
             if (!pathWasFound)
@@ -275,13 +283,20 @@ namespace IsometricPathfinding.Pathfinding
                 return;
             }
 
-            currentPath.AddRange(LimitPathToMovementPoints(foundPath, playerMovementPoints));
+            currentPath.AddRange(LimitPathToMovementPoints(pathResult.Path, playerMovementPoints));
 
             hasValidPath = currentPath.Count >= 2;
 
             movementStepCount = Mathf.Max(0, currentPath.Count - 1);
 
-            turnPenaltyScore = foundTurnPenalty;
+            turnPenaltyScore = pathResult.TurnPenalty;
+
+            tacticalScore = pathResult.TotalScore;
+            stepScore = pathResult.Score.StepScore;
+            heuristicScore = pathResult.Score.HeuristicScore;
+            zigZagScore = pathResult.Score.ZigZagScore;
+            obstacleHuggingScore = pathResult.Score.ObstacleHuggingScore;
+            directionalProgressScore = pathResult.Score.DirectionalProgressScore;
 
             pathPreviewRenderer.ShowPath(currentPath, requestedTargetCoordinates);
 
@@ -289,21 +304,27 @@ namespace IsometricPathfinding.Pathfinding
             {
                 Debug.Log(
                     $"Path found from "
-                        + $"{startCoordinates} to "
-                        + $"{targetCoordinates}. "
-                        + $"Initial facing: "
-                        + $"{pathInitialFacingDirection}. "
-                        + $"Steps: {movementStepCount}. "
-                        + $"Turn penalty: "
-                        + $"{turnPenaltyScore}. "
-                        + $"Route: "
-                        + $"{BuildPathText(currentPath)}",
+                    + $"{startCoordinates} to "
+                    + $"{targetCoordinates}. "
+                    + $"Initial facing: "
+                    + $"{pathInitialFacingDirection}. "
+                    + $"Steps shown: {movementStepCount}. "
+                    + $"Full path steps: {pathResult.StepCount}. "
+                    + $"Tactical score: {tacticalScore}. "
+                    + $"Step score: {stepScore}. "
+                    + $"Heuristic score: {heuristicScore}. "
+                    + $"Turn score: {turnPenaltyScore}. "
+                    + $"Zigzag score: {zigZagScore}. "
+                    + $"Obstacle score: {obstacleHuggingScore}. "
+                    + $"Directional score: {directionalProgressScore}. "
+                    + $"Route: "
+                    + $"{BuildPathText(currentPath)}",
                     this
                 );
             }
         }
-        
-        private PathPreferenceSettings BuildPlayerPathPreferences(
+
+        private TacticalPathProfile BuildPlayerPathProfile(
             Vector2Int startCoordinates,
             Vector2Int targetCoordinates
         )
@@ -312,15 +333,24 @@ namespace IsometricPathfinding.Pathfinding
                 startCoordinates.x != targetCoordinates.x
                 && startCoordinates.y != targetCoordinates.y;
 
-            return new PathPreferenceSettings(
-                preferDiagonalZigZag && targetIsDiagonal,
-                diagonalZigZagBalanceCost,
-                preferObstacleHugging ? obstacleHuggingReward : 0
+            return new TacticalPathProfile(
+                stepCost,
+                heuristicCost,
+                turnPenaltyCost,
+                reversePenaltyCost,
+                preferDiagonalZigZag && targetIsDiagonal
+                    ? diagonalZigZagBalanceCost
+                    : 0,
+                preferObstacleHugging
+                    ? obstacleHuggingReward
+                    : 0,
+                directionalProgressReward,
+                maximumExtraStepCount
             );
         }
 
         private bool TryResolveMovementTarget(
-            Vector2Int startCoordinates, 
+            Vector2Int startCoordinates,
             Vector2Int requestedTargetCoordinates,
             out Vector2Int movementTargetCoordinates
         )
@@ -331,7 +361,7 @@ namespace IsometricPathfinding.Pathfinding
             {
                 return true;
             }
-            
+
             if (occupant == playerGridMover.gameObject)
             {
                 return true;
@@ -350,7 +380,7 @@ namespace IsometricPathfinding.Pathfinding
                 out movementTargetCoordinates
             );
         }
-        
+
         private bool TryFindBestAdjacentCellToOccupiedTarget(
             Vector2Int startCoordinates,
             Vector2Int occupiedTargetCoordinates,
@@ -368,8 +398,8 @@ namespace IsometricPathfinding.Pathfinding
             };
 
             bool foundCandidate = false;
+            int bestTacticalScore = int.MaxValue;
             int bestStepCount = int.MaxValue;
-            int bestTurnPenalty = int.MaxValue;
 
             for (int i = 0; i < candidates.Length; i++)
             {
@@ -385,9 +415,8 @@ namespace IsometricPathfinding.Pathfinding
                     startCoordinates,
                     candidate,
                     playerGridMover.FacingDirection,
-                    BuildPlayerPathPreferences(startCoordinates, candidate),
-                    out List<Vector2Int> candidatePath,
-                    out int candidateTurnPenalty
+                    BuildPlayerPathProfile(startCoordinates, candidate),
+                    out TacticalPathResult candidateResult
                 );
 
                 if (!pathWasFound)
@@ -395,13 +424,14 @@ namespace IsometricPathfinding.Pathfinding
                     continue;
                 }
 
-                int candidateStepCount = Mathf.Max(0, candidatePath.Count - 1);
+                int candidateStepCount = candidateResult.StepCount;
+                int candidateTacticalScore = candidateResult.TotalScore;
 
                 bool candidateIsBetter =
                     !foundCandidate
-                    || candidateStepCount < bestStepCount
-                    || candidateStepCount == bestStepCount
-                    && candidateTurnPenalty < bestTurnPenalty;
+                    || candidateTacticalScore < bestTacticalScore
+                    || (candidateTacticalScore == bestTacticalScore
+                        && candidateStepCount < bestStepCount);
 
                 if (!candidateIsBetter)
                 {
@@ -410,8 +440,8 @@ namespace IsometricPathfinding.Pathfinding
 
                 foundCandidate = true;
                 bestCell = candidate;
+                bestTacticalScore = candidateTacticalScore;
                 bestStepCount = candidateStepCount;
-                bestTurnPenalty = candidateTurnPenalty;
             }
 
             return foundCandidate;
@@ -424,16 +454,24 @@ namespace IsometricPathfinding.Pathfinding
             currentPath.Clear();
 
             hasValidPath = false;
-            currentTarget = default;
             movementStepCount = 0;
             turnPenaltyScore = 0;
+            tacticalScore = 0;
+            stepScore = 0;
+            heuristicScore = 0;
+            zigZagScore = 0;
+            obstacleHuggingScore = 0;
+            directionalProgressScore = 0;
 
             pathInitialFacingDirection = GridDirection.None;
 
             pathPreviewRenderer.Clear();
         }
 
-        private static List<Vector2Int> LimitPathToMovementPoints(IReadOnlyList<Vector2Int> path, int movementPoints)
+        private static List<Vector2Int> LimitPathToMovementPoints(
+            IReadOnlyList<Vector2Int> path,
+            int movementPoints
+        )
         {
             List<Vector2Int> limitedPath = new List<Vector2Int>();
 
@@ -441,14 +479,14 @@ namespace IsometricPathfinding.Pathfinding
             {
                 return limitedPath;
             }
-            
+
             /*
              * path[0] is the current player cell.
              *
              * movementPoints means actual movement steps.
              *
              * Example:
-             * movementPoints = 6
+             * movementPoints = 4
              *
              * path indices allowed:
              * 0 = start cell
@@ -457,16 +495,16 @@ namespace IsometricPathfinding.Pathfinding
              * 3 = step 3
              * 4 = step 4
              */
-            
+
             int safeMovementPoints = Mathf.Max(0, movementPoints);
 
             int maxIndex = Mathf.Min(path.Count - 1, safeMovementPoints);
-            
-            for(int i = 0; i <= maxIndex; i++)
+
+            for (int i = 0; i <= maxIndex; i++)
             {
                 limitedPath.Add(path[i]);
             }
-            
+
             return limitedPath;
         }
 
@@ -574,15 +612,31 @@ namespace IsometricPathfinding.Pathfinding
 
         private void OnValidate()
         {
+            stepCost = Mathf.Max(1, stepCost);
+
+            heuristicCost = Mathf.Max(0, heuristicCost);
+
             turnPenaltyCost = Mathf.Max(0, turnPenaltyCost);
 
             reversePenaltyCost = Mathf.Max(turnPenaltyCost, reversePenaltyCost);
-            
+
             playerMovementPoints = Mathf.Max(1, playerMovementPoints);
-            
+
             diagonalZigZagBalanceCost = Mathf.Max(0, diagonalZigZagBalanceCost);
 
-            obstacleHuggingReward = Mathf.Max(0, obstacleHuggingReward);
+            obstacleHuggingReward = Mathf.Clamp(
+                obstacleHuggingReward,
+                0,
+                stepCost / 4
+            );
+
+            directionalProgressReward = Mathf.Clamp(
+                directionalProgressReward,
+                0,
+                stepCost / 4
+            );
+
+            maximumExtraStepCount = Mathf.Max(0, maximumExtraStepCount);
         }
     }
 }
