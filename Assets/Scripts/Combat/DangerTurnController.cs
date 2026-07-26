@@ -54,6 +54,8 @@ namespace IsometricPathfinding.Combat
 
         private bool hasPausedTimeForStrikeMinigame;
         
+        public int LastStrikeMinigameFinishedFrame { get; private set; } = -1;
+        
 
         private void Awake()
         {
@@ -227,6 +229,11 @@ namespace IsometricPathfinding.Combat
 
             ResumeGameAfterStrikeMinigame();
             
+            if (currentPhase == DangerTurnPhase.StrikeMinigame)
+            {
+                LastStrikeMinigameFinishedFrame = Time.frameCount;
+            }
+            
             StrikeMinigameEnded?.Invoke();
 
             pendingStrikeTarget = null;
@@ -278,6 +285,8 @@ namespace IsometricPathfinding.Combat
             }
             
             ResumeGameAfterStrikeMinigame();
+            
+            LastStrikeMinigameFinishedFrame = Time.frameCount;
             
             StrikeMinigameEnded?.Invoke();
 

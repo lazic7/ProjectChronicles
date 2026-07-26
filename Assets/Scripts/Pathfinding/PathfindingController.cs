@@ -120,9 +120,26 @@ namespace IsometricPathfinding.Pathfinding
                 cell => navigationGrid.IsWalkableForActor(cell, playerGridMover.gameObject)
             );
         }
+        
+        private void OnEnable()
+        {
+            if (dangerTurnController != null)
+            {
+                dangerTurnController.StrikeMinigameStarted += OnStrikeMinigameStarted;
+            }
+        }
 
         private void LateUpdate()
         {
+            if (ShouldSuppressMovementInputThisFrame())
+            {
+                if (hasProcessedHover || currentPath.Count > 0 || hasValidPath)
+                {
+                    ClearCurrentPath();
+                }
+
+                return;
+            }
             /*
              * If the pointer is over UI, do not update world path preview
              * and do not accept world movement clicks.
@@ -226,6 +243,11 @@ namespace IsometricPathfinding.Pathfinding
 
         private void HandleMovementClick()
         {
+            if (ShouldSuppressMovementInputThisFrame())
+            {
+                return;
+            }
+            
             if (Mouse.current == null)
             {
                 return;
@@ -290,6 +312,12 @@ namespace IsometricPathfinding.Pathfinding
             }
 
             return EventSystem.current.IsPointerOverGameObject();
+        }
+        
+        private bool ShouldSuppressMovementInputThisFrame()
+        {
+            return dangerTurnController != null
+                   && dangerTurnController.LastStrikeMinigameFinishedFrame == Time.frameCount;
         }
 
         private void CalculateAndDisplayPath(
@@ -670,10 +698,20 @@ namespace IsometricPathfinding.Pathfinding
 
         private void OnDisable()
         {
+            if (dangerTurnController != null)
+            {
+                dangerTurnController.StrikeMinigameStarted -= OnStrikeMinigameStarted;
+            }
+
             if (pathPreviewRenderer != null)
             {
                 pathPreviewRenderer.Clear();
             }
+        }
+        
+        private void OnStrikeMinigameStarted(ZombieAgent zombie)
+        {
+            ClearCurrentPath();
         }
 
         private void OnValidate()
