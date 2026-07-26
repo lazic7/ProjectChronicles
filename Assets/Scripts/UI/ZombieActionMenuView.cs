@@ -34,6 +34,10 @@ namespace IsometricPathfinding.UI
 
         private ZombieAttackOption selectedOption = ZombieAttackOption.None;
 
+        private GameObject menuRootObject;
+        private RectTransform canvasRectTransform;
+        private Camera uiCamera;
+
         public event Action<ZombieAttackOption> OptionSelected;
 
         public ZombieAgent CurrentTarget => currentTarget;
@@ -48,6 +52,7 @@ namespace IsometricPathfinding.UI
                 return;
             }
 
+            CachePositioningReferences();
             Hide();
         }
 
@@ -84,7 +89,7 @@ namespace IsometricPathfinding.UI
                 return;
             }
 
-            if (!menuRoot.gameObject.activeSelf)
+            if (!menuRootObject.activeSelf)
             {
                 return;
             }
@@ -103,9 +108,9 @@ namespace IsometricPathfinding.UI
             currentTarget = zombie;
             selectedOption = selectedAction;
 
-            if (!menuRoot.gameObject.activeSelf)
+            if (!menuRootObject.activeSelf)
             {
-                menuRoot.gameObject.SetActive(true);
+                menuRootObject.SetActive(true);
             }
 
             RefreshButtonVisuals();
@@ -117,9 +122,9 @@ namespace IsometricPathfinding.UI
             currentTarget = null;
             selectedOption = ZombieAttackOption.None;
 
-            if (menuRoot != null)
+            if (menuRootObject != null)
             {
-                menuRoot.gameObject.SetActive(false);
+                menuRootObject.SetActive(false);
             }
 
             RefreshButtonVisuals();
@@ -179,16 +184,10 @@ namespace IsometricPathfinding.UI
                 worldPosition
             );
 
-            RectTransform canvasRectTransform = canvas.transform as RectTransform;
-
             if (canvasRectTransform == null)
             {
                 return;
             }
-
-            Camera uiCamera = canvas.renderMode == RenderMode.ScreenSpaceOverlay
-                ? null
-                : canvas.worldCamera;
 
             bool converted = RectTransformUtility.ScreenPointToLocalPointInRectangle(
                 canvasRectTransform,
@@ -203,6 +202,15 @@ namespace IsometricPathfinding.UI
             }
 
             menuRoot.anchoredPosition = localPoint + screenOffset;
+        }
+
+        private void CachePositioningReferences()
+        {
+            menuRootObject = menuRoot.gameObject;
+            canvasRectTransform = canvas.transform as RectTransform;
+            uiCamera = canvas.renderMode == RenderMode.ScreenSpaceOverlay
+                ? null
+                : canvas.worldCamera;
         }
 
         private bool ValidateReferences()

@@ -24,6 +24,10 @@ namespace IsometricPathfinding.UI
 
         private ZombieAgent currentTarget;
 
+        private GameObject promptRootObject;
+        private RectTransform canvasRectTransform;
+        private Camera uiCamera;
+
         public event Action StrikeClicked;
 
         public ZombieAgent CurrentTarget => currentTarget;
@@ -36,6 +40,7 @@ namespace IsometricPathfinding.UI
                 return;
             }
 
+            CachePositioningReferences();
             Hide();
         }
 
@@ -62,7 +67,7 @@ namespace IsometricPathfinding.UI
                 return;
             }
 
-            if (!promptRoot.gameObject.activeSelf)
+            if (!promptRootObject.activeSelf)
             {
                 return;
             }
@@ -80,9 +85,9 @@ namespace IsometricPathfinding.UI
 
             currentTarget = zombie;
 
-            if (!promptRoot.gameObject.activeSelf)
+            if (!promptRootObject.activeSelf)
             {
-                promptRoot.gameObject.SetActive(true);
+                promptRootObject.SetActive(true);
             }
 
             UpdatePromptPosition();
@@ -92,9 +97,9 @@ namespace IsometricPathfinding.UI
         {
             currentTarget = null;
 
-            if (promptRoot != null)
+            if (promptRootObject != null)
             {
-                promptRoot.gameObject.SetActive(false);
+                promptRootObject.SetActive(false);
             }
         }
 
@@ -113,16 +118,10 @@ namespace IsometricPathfinding.UI
                 worldPosition
             );
 
-            RectTransform canvasRectTransform = canvas.transform as RectTransform;
-
             if (canvasRectTransform == null)
             {
                 return;
             }
-
-            Camera uiCamera = canvas.renderMode == RenderMode.ScreenSpaceOverlay
-                ? null
-                : canvas.worldCamera;
 
             bool converted = RectTransformUtility.ScreenPointToLocalPointInRectangle(
                 canvasRectTransform,
@@ -137,6 +136,15 @@ namespace IsometricPathfinding.UI
             }
 
             promptRoot.anchoredPosition = localPoint + screenOffset;
+        }
+
+        private void CachePositioningReferences()
+        {
+            promptRootObject = promptRoot.gameObject;
+            canvasRectTransform = canvas.transform as RectTransform;
+            uiCamera = canvas.renderMode == RenderMode.ScreenSpaceOverlay
+                ? null
+                : canvas.worldCamera;
         }
 
         private void OnStrikeButtonClicked()

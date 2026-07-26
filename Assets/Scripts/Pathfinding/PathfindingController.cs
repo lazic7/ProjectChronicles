@@ -16,6 +16,14 @@ namespace IsometricPathfinding.Pathfinding
     [DisallowMultipleComponent]
     public sealed class PathfindingController : MonoBehaviour
     {
+        private static readonly Vector2Int[] CardinalDirections =
+        {
+            Vector2Int.up,
+            Vector2Int.down,
+            Vector2Int.right,
+            Vector2Int.left,
+        };
+
         [Header("Scene References")]
         
         [SerializeField] private NavigationGrid navigationGrid;
@@ -87,6 +95,9 @@ namespace IsometricPathfinding.Pathfinding
         private readonly List<Vector2Int> currentPath = new List<Vector2Int>();
         
         private readonly List<Vector2Int> movementClickPath = new List<Vector2Int>();
+
+        private readonly Dictionary<GameObject, ZombieAgent> occupantZombieCache =
+            new Dictionary<GameObject, ZombieAgent>();
 
         private bool hasProcessedHover;
         private bool lastTargetWasWalkable;
@@ -415,9 +426,7 @@ namespace IsometricPathfinding.Pathfinding
                 return true;
             }
 
-            ZombieAgent zombie = occupant.GetComponent<ZombieAgent>();
-
-            if (zombie == null)
+            if (!TryGetCachedZombie(occupant, out _))
             {
                 return false;
             }
@@ -437,21 +446,13 @@ namespace IsometricPathfinding.Pathfinding
         {
             bestCell = default;
 
-            Vector2Int[] candidates =
-            {
-                occupiedTargetCoordinates + Vector2Int.up,
-                occupiedTargetCoordinates + Vector2Int.down,
-                occupiedTargetCoordinates + Vector2Int.left,
-                occupiedTargetCoordinates + Vector2Int.right,
-            };
-
             bool foundCandidate = false;
             int bestTacticalScore = int.MaxValue;
             int bestStepCount = int.MaxValue;
 
-            for (int i = 0; i < candidates.Length; i++)
+            for (int i = 0; i < CardinalDirections.Length; i++)
             {
-                Vector2Int candidate = candidates[i];
+                Vector2Int candidate = occupiedTargetCoordinates + CardinalDirections[i];
 
                 if (candidate != startCoordinates
                     && !navigationGrid.IsWalkableForActor(candidate, playerGridMover.gameObject))
@@ -493,6 +494,28 @@ namespace IsometricPathfinding.Pathfinding
             }
 
             return foundCandidate;
+        }
+
+        private bool TryGetCachedZombie(GameObject occupant, out ZombieAgent zombie)
+        {
+            zombie = null;
+
+            if (occupant == null)
+            {
+                return false;
+            }
+
+            if (!occupantZombieCache.TryGetValue(occupant, out zombie) || zombie == null)
+            {
+                zombie = occupant.GetComponent<ZombieAgent>();
+
+                if (zombie != null)
+                {
+                    occupantZombieCache[occupant] = zombie;
+                }
+            }
+
+            return zombie != null;
         }
 
         private void ClearCurrentPath()

@@ -10,6 +10,14 @@ namespace IsometricPathfinding.Combat
     [DisallowMultipleComponent]
     public sealed class ZombieActionExecutionController : MonoBehaviour
     {
+        private static readonly Vector2Int[] CardinalDirections =
+        {
+            Vector2Int.up,
+            Vector2Int.down,
+            Vector2Int.left,
+            Vector2Int.right,
+        };
+
         [Header("Scene References")]
         [SerializeField] private ZombieStrikeTargetingController targetingController;
 
@@ -36,6 +44,8 @@ namespace IsometricPathfinding.Combat
         [SerializeField] private bool logActionExecution;
 
         private AStarPathfinder pathfinder;
+
+        private readonly List<Vector2Int> strikePath = new List<Vector2Int>();
 
         private void Awake()
         {
@@ -92,8 +102,6 @@ namespace IsometricPathfinding.Combat
                 {
                     Debug.Log($"Shoot selected against {zombie.name}, but shooting is not implemented yet.", zombie);
                 }
-
-                return;
             }
         }
 
@@ -126,7 +134,7 @@ namespace IsometricPathfinding.Combat
                 return;
             }
 
-            if (!TryFindBestAdjacentPathToZombie(zombie, out List<Vector2Int> path))
+            if (!TryFindBestAdjacentPathToZombie(zombie, strikePath))
             {
                 if (logActionExecution)
                 {
@@ -143,7 +151,7 @@ namespace IsometricPathfinding.Combat
                 return;
             }
 
-            bool movementStarted = playerGridMover.TryMoveAlongPath(path);
+            bool movementStarted = playerGridMover.TryMoveAlongPath(strikePath);
 
             if (!movementStarted)
             {
@@ -165,33 +173,25 @@ namespace IsometricPathfinding.Combat
 
         private bool TryFindBestAdjacentPathToZombie(
             ZombieAgent zombie,
-            out List<Vector2Int> bestPath
+            List<Vector2Int> bestPath
         )
         {
-            bestPath = null;
-
-            if (zombie == null)
+            if (zombie == null || bestPath == null)
             {
                 return false;
             }
 
+            bestPath.Clear();
+
             Vector2Int start = playerGridPosition.CurrentCell;
             Vector2Int zombieCell = zombie.CurrentCell;
-
-            Vector2Int[] candidates =
-            {
-                zombieCell + Vector2Int.up,
-                zombieCell + Vector2Int.down,
-                zombieCell + Vector2Int.left,
-                zombieCell + Vector2Int.right,
-            };
 
             bool foundCandidate = false;
             TacticalPathResult bestResult = default;
 
-            for (int i = 0; i < candidates.Length; i++)
+            for (int i = 0; i < CardinalDirections.Length; i++)
             {
-                Vector2Int candidate = candidates[i];
+                Vector2Int candidate = zombieCell + CardinalDirections[i];
 
                 if (candidate != start
                     && !navigationGrid.IsWalkableForActor(candidate, playerGridMover.gameObject))
@@ -232,7 +232,6 @@ namespace IsometricPathfinding.Combat
                 return false;
             }
 
-            bestPath = new List<Vector2Int>();
 
             for (int i = 0; i < bestResult.Path.Count; i++)
             {

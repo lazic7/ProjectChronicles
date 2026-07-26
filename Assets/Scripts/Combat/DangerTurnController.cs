@@ -26,6 +26,8 @@ namespace IsometricPathfinding.Combat
 
         [SerializeField] private DangerTurnPhase currentPhase = DangerTurnPhase.None;
 
+        private readonly HashSet<ZombieAgent> activeZombieLookup = new HashSet<ZombieAgent>();
+
         [Header("Danger Settings")]
         [SerializeField] [Min(0)] private int zombieJoinRange = 6;
 
@@ -47,6 +49,8 @@ namespace IsometricPathfinding.Combat
 
         private void Awake()
         {
+            RebuildActiveZombieLookup();
+
             if (zombieManager == null)
             {
                 zombieManager = ZombieManager.Instance;
@@ -116,7 +120,7 @@ namespace IsometricPathfinding.Combat
                 gameMode = GameMode.Danger;
                 currentPhase = DangerTurnPhase.PlayerTurn;
                 activeZombieRefreshTimer = 0f;
-                activeZombies.Clear();
+                ClearActiveZombies();
 
                 Debug.Log("Entered Danger Mode", this);
             }
@@ -261,12 +265,13 @@ namespace IsometricPathfinding.Combat
                 return;
             }
 
-            if (activeZombies.Contains(zombie))
+            if (activeZombieLookup.Contains(zombie))
             {
                 return;
             }
 
             activeZombies.Add(zombie);
+            activeZombieLookup.Add(zombie);
             zombie.SetCombatState();
 
             Debug.Log($"{zombie.name} joined Danger Mode.", zombie);
@@ -299,7 +304,7 @@ namespace IsometricPathfinding.Combat
                     continue;
                 }
 
-                if (activeZombies.Contains(zombie))
+                if (activeZombieLookup.Contains(zombie))
                 {
                     continue;
                 }
@@ -321,7 +326,7 @@ namespace IsometricPathfinding.Combat
 
                 if (zombie == null)
                 {
-                    activeZombies.RemoveAt(i);
+                    RemoveActiveZombieAt(i);
                     continue;
                 }
 
@@ -332,13 +337,13 @@ namespace IsometricPathfinding.Combat
                         pendingStrikeTarget = null;
                     }
 
-                    activeZombies.RemoveAt(i);
+                    RemoveActiveZombieAt(i);
                     continue;
                 }
 
                 if (GetDistanceToPlayer(zombie) > dangerExitRange)
                 {
-                    activeZombies.RemoveAt(i);
+                    RemoveActiveZombieAt(i);
 
                     if (pendingStrikeTarget == zombie)
                     {
@@ -395,7 +400,7 @@ namespace IsometricPathfinding.Combat
             gameMode = GameMode.Exploration;
             currentPhase = DangerTurnPhase.None;
             pendingStrikeTarget = null;
-            activeZombies.Clear();
+            ClearActiveZombies();
 
             Debug.Log("Exited Danger Mode", this);
         }
@@ -491,7 +496,7 @@ namespace IsometricPathfinding.Combat
                     continue;
                 }
 
-                if (!activeZombies.Contains(zombie))
+                if (!activeZombieLookup.Contains(zombie))
                 {
                     continue;
                 }
@@ -528,7 +533,40 @@ namespace IsometricPathfinding.Combat
         
         public bool IsZombieActive(ZombieAgent zombie)
         {
-            return zombie != null && activeZombies.Contains(zombie);
+            return zombie != null && activeZombieLookup.Contains(zombie);
+        }
+
+        private void ClearActiveZombies()
+        {
+            activeZombies.Clear();
+            activeZombieLookup.Clear();
+        }
+
+        private void RemoveActiveZombieAt(int index)
+        {
+            ZombieAgent zombie = activeZombies[index];
+
+            if (zombie != null)
+            {
+                activeZombieLookup.Remove(zombie);
+            }
+
+            activeZombies.RemoveAt(index);
+        }
+
+        private void RebuildActiveZombieLookup()
+        {
+            activeZombieLookup.Clear();
+
+            for (int i = activeZombies.Count - 1; i >= 0; i--)
+            {
+                ZombieAgent zombie = activeZombies[i];
+
+                if (zombie == null || !activeZombieLookup.Add(zombie))
+                {
+                    activeZombies.RemoveAt(i);
+                }
+            }
         }
         
         private void OnValidate()

@@ -24,12 +24,10 @@ namespace IsometricPathfinding.Input
         [SerializeField]
         private bool hoveredCellIsWalkable;
 
-        [Header("Debug")]
-        [SerializeField]
-        private bool logCellChanges;
-
         private Vector3Int lastCheckedCell;
         private bool hasLastCheckedCell;
+        private Transform worldCameraTransform;
+        private float distanceToGridPlane;
 
         public bool HasHoveredCell => hasHoveredCell;
 
@@ -42,7 +40,10 @@ namespace IsometricPathfinding.Input
             if (!ValidateReferences())
             {
                 enabled = false;
+                return;
             }
+
+            CacheProjectionData();
         }
 
         private void Update()
@@ -81,10 +82,6 @@ namespace IsometricPathfinding.Input
                 return false;
             }
 
-            float distanceToGridPlane = Mathf.Abs(
-                navigationGrid.WorldPlaneZ - worldCamera.transform.position.z
-            );
-
             Vector3 screenPosition = new Vector3(
                 mouseScreenPosition.x,
                 mouseScreenPosition.y,
@@ -111,11 +108,14 @@ namespace IsometricPathfinding.Input
             hasHoveredCell = true;
             hoveredCell = logicalCell;
             hoveredCellIsWalkable = node.IsWalkable;
+        }
 
-            if (logCellChanges)
-            {
-                Debug.Log($"Hovered cell: {hoveredCell}, " + $"walkable: {node.IsWalkable}.", this);
-            }
+        private void CacheProjectionData()
+        {
+            worldCameraTransform = worldCamera.transform;
+            distanceToGridPlane = Mathf.Abs(
+                navigationGrid.WorldPlaneZ - worldCameraTransform.position.z
+            );
         }
 
         private void ClearHoverState()

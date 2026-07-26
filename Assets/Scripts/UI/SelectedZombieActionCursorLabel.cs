@@ -18,6 +18,9 @@ namespace IsometricPathfinding.UI
         [Header("Positioning")]
         [SerializeField] private Vector2 screenOffset = new Vector2(18f, -18f);
 
+        private GameObject labelRootObject;
+        private ZombieAttackOption lastDisplayedOption = ZombieAttackOption.None;
+
         private void Awake()
         {
             if (!ValidateReferences())
@@ -26,6 +29,7 @@ namespace IsometricPathfinding.UI
                 return;
             }
 
+            labelRootObject = labelRoot.gameObject;
             Hide();
         }
 
@@ -57,19 +61,23 @@ namespace IsometricPathfinding.UI
 
         private void Show(ZombieAttackOption option)
         {
-            if (!labelRoot.gameObject.activeSelf)
+            if (!labelRootObject.activeSelf)
             {
-                labelRoot.gameObject.SetActive(true);
+                labelRootObject.SetActive(true);
             }
 
-            labelText.text = option.ToString().ToUpperInvariant();
+            if (option != lastDisplayedOption)
+            {
+                lastDisplayedOption = option;
+                labelText.text = option.ToString().ToUpperInvariant();
+            }
         }
 
         private void Hide()
         {
-            if (labelRoot != null)
+            if (labelRootObject != null)
             {
-                labelRoot.gameObject.SetActive(false);
+                labelRootObject.SetActive(false);
             }
         }
 

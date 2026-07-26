@@ -24,12 +24,16 @@ namespace IsometricPathfinding.UI
         private Tilemap previewTilemap;
 
         private readonly List<Vector3Int> displayedCells = new List<Vector3Int>();
+        private readonly HashSet<Vector3Int> displayedCellSet = new HashSet<Vector3Int>();
 
         private void Awake()
         {
             previewTilemap = GetComponent<Tilemap>();
 
-            ValidateReferences();
+            if (!ValidateReferences())
+            {
+                enabled = false;
+            }
         }
 
         public void ShowPath(IReadOnlyList<Vector2Int> path, Vector2Int hoverCoordinates)
@@ -104,6 +108,7 @@ namespace IsometricPathfinding.UI
             }
 
             displayedCells.Clear();
+            displayedCellSet.Clear();
         }
 
         private void SetPreviewTile(Vector2Int coordinates, TileBase tile)
@@ -119,7 +124,7 @@ namespace IsometricPathfinding.UI
 
             previewTilemap.SetTile(tilemapCell, tile);
 
-            if (!displayedCells.Contains(tilemapCell))
+            if (displayedCellSet.Add(tilemapCell))
             {
                 displayedCells.Add(tilemapCell);
             }

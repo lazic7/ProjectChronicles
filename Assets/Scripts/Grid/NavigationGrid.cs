@@ -41,10 +41,6 @@ namespace IsometricPathfinding.Navigation
         [SerializeField]
         private Vector2Int maximumCoordinates;
 
-        [Header("Debug")]
-        [SerializeField]
-        private bool logBuildSummary = true;
-
         private readonly Dictionary<Vector2Int, GridNode> nodes =
             new Dictionary<Vector2Int, GridNode>();
 
@@ -134,21 +130,6 @@ namespace IsometricPathfinding.Navigation
             {
                 Debug.LogWarning(
                     "Navigation Grid was built, " + "but no Ground tiles were found.",
-                    this
-                );
-
-                return;
-            }
-
-            if (logBuildSummary)
-            {
-                Debug.Log(
-                    $"Navigation Grid built successfully. "
-                        + $"Total: {totalNodeCount}, "
-                        + $"walkable: {walkableNodeCount}, "
-                        + $"blocked: {blockedNodeCount}, "
-                        + $"coordinates: {minimumCoordinates} "
-                        + $"to {maximumCoordinates}.",
                     this
                 );
             }

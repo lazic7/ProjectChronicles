@@ -57,8 +57,6 @@ namespace IsometricPathfinding.Zombies
 
         [SerializeField] private float maximumRoamDelay = 3.5f;
 
-        [SerializeField] private int roamStepCount = 1;
-        
         [SerializeField] private bool logPathResults;
 
         private float roamTimer;
@@ -598,20 +596,12 @@ namespace IsometricPathfinding.Zombies
         {
             Vector2Int playerCell = playerGridPosition.CurrentCell;
 
-            Vector2Int[] candidates =
-            {
-                playerCell + Vector2Int.up,
-                playerCell + Vector2Int.down,
-                playerCell + Vector2Int.right,
-                playerCell + Vector2Int.left,
-            };
-
             Vector2Int bestCell = zombieGridPosition.CurrentCell;
             int bestDistance = int.MaxValue;
 
-            for (int i = 0; i < candidates.Length; i++)
+            for (int i = 0; i < RoamDirections.Length; i++)
             {
-                Vector2Int candidate = candidates[i];
+                Vector2Int candidate = playerCell + RoamDirections[i];
 
                 if (!navigationGrid.IsWalkableForActor(candidate, gameObject))
                 {
@@ -672,25 +662,6 @@ namespace IsometricPathfinding.Zombies
                 default:
                     return Vector2Int.zero;
             }
-        }
-        
-        private static GridDirection GetPrimaryDirectionFromDifference(Vector2Int difference)
-        {
-            if (difference == Vector2Int.zero)
-            {
-                return GridDirection.None;
-            }
-
-            if (Mathf.Abs(difference.x) >= Mathf.Abs(difference.y))
-            {
-                return difference.x > 0
-                    ? GridDirection.Right
-                    : GridDirection.Left;
-            }
-
-            return difference.y > 0
-                ? GridDirection.Up
-                : GridDirection.Down;
         }
         
         private static GridDirection GetDirectionTowardCell(Vector2Int fromCell, Vector2Int toCell)
@@ -807,8 +778,6 @@ namespace IsometricPathfinding.Zombies
 
             minimumRoamDelay = Mathf.Max(0.1f, minimumRoamDelay);
             maximumRoamDelay = Mathf.Max(minimumRoamDelay, maximumRoamDelay);
-
-            roamStepCount = Mathf.Max(1, roamStepCount);
 
             turnPenaltyCost = Mathf.Max(0, turnPenaltyCost);
             reversePenaltyCost = Mathf.Max(turnPenaltyCost, reversePenaltyCost);

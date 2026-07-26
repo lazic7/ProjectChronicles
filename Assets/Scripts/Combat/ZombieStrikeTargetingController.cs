@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using IsometricPathfinding.UI;
 using IsometricPathfinding.Zombies;
 using UnityEngine;
@@ -33,6 +34,14 @@ namespace IsometricPathfinding.Combat
         private ZombieAttackOption selectedOption = ZombieAttackOption.None;
 
         private float hideTimer;
+        private Transform worldCameraTransform;
+        private float cameraDistanceToWorldPlane;
+
+        private readonly Dictionary<Collider2D, ZombieAgent> zombieByCollider =
+            new Dictionary<Collider2D, ZombieAgent>();
+
+        private readonly Dictionary<ZombieAgent, ZombieHoverOutline> outlineByZombie =
+            new Dictionary<ZombieAgent, ZombieHoverOutline>();
 
         public ZombieAgent CurrentTarget => currentTarget;
 
@@ -47,7 +56,10 @@ namespace IsometricPathfinding.Combat
             if (!ValidateReferences())
             {
                 enabled = false;
+                return;
             }
+
+            CacheProjectionData();
         }
 
         private void OnEnable()
@@ -293,7 +305,7 @@ namespace IsometricPathfinding.Combat
                 new Vector3(
                     mouseScreenPosition.x,
                     mouseScreenPosition.y,
-                    Mathf.Abs(worldCamera.transform.position.z)
+                    cameraDistanceToWorldPlane
                 )
             );
 
@@ -309,7 +321,15 @@ namespace IsometricPathfinding.Combat
                 return false;
             }
 
-            zombie = hitCollider.GetComponentInParent<ZombieAgent>();
+            if (!zombieByCollider.TryGetValue(hitCollider, out zombie) || zombie == null)
+            {
+                zombie = hitCollider.GetComponentInParent<ZombieAgent>();
+
+                if (zombie != null)
+                {
+                    zombieByCollider[hitCollider] = zombie;
+                }
+            }
 
             return zombie != null;
         }
@@ -323,9 +343,7 @@ namespace IsometricPathfinding.Combat
                 HideCurrentOutline();
 
                 currentTarget = zombie;
-                currentOutline = currentTarget != null
-                    ? currentTarget.GetComponentInChildren<ZombieHoverOutline>()
-                    : null;
+                currentOutline = GetCachedOutline(currentTarget);
             }
 
             selectedOption = option;
@@ -382,6 +400,32 @@ namespace IsometricPathfinding.Combat
             {
                 currentOutline.Hide();
             }
+        }
+
+        private ZombieHoverOutline GetCachedOutline(ZombieAgent zombie)
+        {
+            if (zombie == null)
+            {
+                return null;
+            }
+
+            if (!outlineByZombie.TryGetValue(zombie, out ZombieHoverOutline outline) || outline == null)
+            {
+                outline = zombie.GetComponentInChildren<ZombieHoverOutline>();
+
+                if (outline != null)
+                {
+                    outlineByZombie[zombie] = outline;
+                }
+            }
+
+            return outline;
+        }
+
+        private void CacheProjectionData()
+        {
+            worldCameraTransform = worldCamera.transform;
+            cameraDistanceToWorldPlane = Mathf.Abs(worldCameraTransform.position.z);
         }
 
         private static bool IsPointerOverUi()

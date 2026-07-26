@@ -154,6 +154,14 @@ namespace IsometricPathfinding.Pathfinding
 
     public sealed class AStarPathfinder
     {
+        private static readonly Vector2Int[] CardinalDirections =
+        {
+            Vector2Int.up,
+            Vector2Int.down,
+            Vector2Int.left,
+            Vector2Int.right,
+        };
+
         private readonly NavigationGrid navigationGrid;
 
         private readonly Func<Vector2Int, bool> canEnterCell;
@@ -161,6 +169,11 @@ namespace IsometricPathfinding.Pathfinding
         private readonly TacticalPathProfile defaultProfile;
         
         private readonly GridNode[] neighborBuffer = new GridNode[4];
+
+        private readonly List<SearchState> openSet = new List<SearchState>();
+
+        private readonly Dictionary<StateKey, SearchState> states =
+            new Dictionary<StateKey, SearchState>();
 
         public AStarPathfinder(
             NavigationGrid navigationGrid,
@@ -295,10 +308,8 @@ namespace IsometricPathfinding.Pathfinding
                 pathProfile
             );
 
-            List<SearchState> openSet = new List<SearchState>();
-
-            Dictionary<StateKey, SearchState> states =
-                new Dictionary<StateKey, SearchState>();
+            openSet.Clear();
+            states.Clear();
 
             StateKey startKey = new StateKey(startCoordinates, initialFacingDirection);
 
@@ -326,14 +337,17 @@ namespace IsometricPathfinding.Pathfinding
             states.Add(startKey, startState);
 
             openSet.Add(startState);
+            startState.IsOpen = true;
 
             SearchState bestTargetState = null;
 
             while (openSet.Count > 0)
             {
-                SearchState currentState = GetLowestCostState(openSet, searchContext);
+                int currentStateIndex = GetLowestCostStateIndex(openSet, searchContext);
+                SearchState currentState = openSet[currentStateIndex];
 
-                openSet.Remove(currentState);
+                RemoveOpenStateAt(currentStateIndex);
+                currentState.IsOpen = false;
 
                 if (currentState.IsClosed)
                 {
@@ -504,9 +518,10 @@ namespace IsometricPathfinding.Pathfinding
 
                     neighborState.IsClosed = false;
 
-                    if (!openSet.Contains(neighborState))
+                    if (!neighborState.IsOpen)
                     {
                         openSet.Add(neighborState);
+                        neighborState.IsOpen = true;
                     }
                 }
             }
@@ -677,17 +692,9 @@ namespace IsometricPathfinding.Pathfinding
         {
             int blockedCount = 0;
 
-            Vector2Int[] directions =
+            for (int i = 0; i < CardinalDirections.Length; i++)
             {
-                Vector2Int.up,
-                Vector2Int.down,
-                Vector2Int.left,
-                Vector2Int.right,
-            };
-
-            for (int i = 0; i < directions.Length; i++)
-            {
-                Vector2Int neighborCoordinates = coordinates + directions[i];
+                Vector2Int neighborCoordinates = coordinates + CardinalDirections[i];
 
                 if (!navigationGrid.TryGetNode(neighborCoordinates, out GridNode neighbor))
                 {
@@ -738,12 +745,13 @@ namespace IsometricPathfinding.Pathfinding
             return GridDirection.None;
         }
 
-        private static SearchState GetLowestCostState(
+        private static int GetLowestCostStateIndex(
             List<SearchState> openSet,
             PathSearchContext searchContext
         )
         {
-            SearchState lowestCostState = openSet[0];
+            int lowestCostStateIndex = 0;
+            SearchState lowestCostState = openSet[lowestCostStateIndex];
 
             for (int index = 1; index < openSet.Count; index++)
             {
@@ -751,11 +759,20 @@ namespace IsometricPathfinding.Pathfinding
 
                 if (IsOpenSetCandidateBetter(candidate, lowestCostState, searchContext))
                 {
+                    lowestCostStateIndex = index;
                     lowestCostState = candidate;
                 }
             }
 
-            return lowestCostState;
+            return lowestCostStateIndex;
+        }
+
+        private void RemoveOpenStateAt(int index)
+        {
+            int lastIndex = openSet.Count - 1;
+
+            openSet[index] = openSet[lastIndex];
+            openSet.RemoveAt(lastIndex);
         }
         
         private static bool IsOpenSetCandidateBetter(
@@ -1045,6 +1062,8 @@ namespace IsometricPathfinding.Pathfinding
             public SearchState Parent { get; set; }
 
             public bool IsClosed { get; set; }
+
+            public bool IsOpen { get; set; }
 
             public SearchState(GridNode node, GridDirection arrivalDirection)
             {

@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -12,6 +11,8 @@ namespace IsometricPathfinding.Zombies
         [SerializeField] private bool registerSceneZombiesOnAwake = true;
         
         [SerializeField] private List<ZombieAgent> zombies = new List<ZombieAgent>();
+
+        private readonly HashSet<ZombieAgent> zombieLookup = new HashSet<ZombieAgent>();
         
         public IReadOnlyList<ZombieAgent> Zombies => zombies;
 
@@ -31,6 +32,8 @@ namespace IsometricPathfinding.Zombies
 
             Instance = this;
 
+            RebuildZombieLookup();
+
             if (registerSceneZombiesOnAwake)
             {
                 RegisterSceneZombies();
@@ -49,6 +52,7 @@ namespace IsometricPathfinding.Zombies
         public void RegisterSceneZombies()
         {
             zombies.Clear();
+            zombieLookup.Clear();
 
             ZombieAgent[] sceneZombies = FindObjectsByType<ZombieAgent>(FindObjectsSortMode.None);
 
@@ -65,7 +69,7 @@ namespace IsometricPathfinding.Zombies
                 return;
             }
 
-            if (zombies.Contains(zombie))
+            if (!zombieLookup.Add(zombie))
             {
                 return;
             }
@@ -80,14 +84,38 @@ namespace IsometricPathfinding.Zombies
                 return;
             }
 
+            if (!zombieLookup.Remove(zombie))
+            {
+                return;
+            }
+
             zombies.Remove(zombie);
         }
         
         public void RemoveNullReferences()
         {
+            RebuildZombieLookup();
+        }
+
+        private void RebuildZombieLookup()
+        {
             for (int i = zombies.Count - 1; i >= 0; i--)
             {
-                if (zombies[i] == null)
+                ZombieAgent zombie = zombies[i];
+
+                if (zombie == null)
+                {
+                    zombies.RemoveAt(i);
+                }
+            }
+
+            zombieLookup.Clear();
+
+            for (int i = zombies.Count - 1; i >= 0; i--)
+            {
+                ZombieAgent zombie = zombies[i];
+
+                if (!zombieLookup.Add(zombie))
                 {
                     zombies.RemoveAt(i);
                 }
