@@ -151,6 +151,18 @@ namespace IsometricPathfinding.Pathfinding
                 return;
             }
             
+            if (dangerTurnController != null
+                && dangerTurnController.GameMode == GameMode.Danger
+                && dangerTurnController.CurrentPhase != DangerTurnPhase.PlayerTurn)
+            {
+                if (hasProcessedHover || currentPath.Count > 0 || hasValidPath)
+                {
+                    ClearCurrentPath();
+                }
+
+                return;
+            }
+            
             /*
              * Dok se igrač kreće ne prikazujemo novu
              * hover putanju i ne prihvaćamo novi cilj.

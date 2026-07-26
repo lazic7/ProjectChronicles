@@ -371,6 +371,11 @@ namespace IsometricPathfinding.Combat
 
             ClearCurrentTarget();
         }
+        
+        public void ForceClearTargeting()
+        {
+            ClearCurrentTarget();
+        }
 
         private void ClearCurrentTarget()
         {
