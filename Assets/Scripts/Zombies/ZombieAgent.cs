@@ -77,6 +77,20 @@ namespace IsometricPathfinding.Zombies
         public GridDirection CurrentMovementDirection => zombieGridMover.CurrentMovementDirection;
 
         public GridDirection FacingDirection => zombieGridMover.FacingDirection;
+        
+        private static readonly Vector2Int[] RoamDirections =
+        {
+            Vector2Int.up,
+            Vector2Int.down,
+            Vector2Int.right,
+            Vector2Int.left,
+        };
+
+        private readonly List<Vector2Int> roamCandidates = new List<Vector2Int>(4);
+
+        private readonly List<Vector2Int> roamPath = new List<Vector2Int>(2);
+
+        private readonly List<Vector2Int> limitedTurnPath = new List<Vector2Int>();
 
         private void Awake()
         {
@@ -278,6 +292,57 @@ namespace IsometricPathfinding.Zombies
             state = ZombieState.Roaming;
             alertTimer = 0f;
             ResetRoamTimer();
+        }
+        
+        [ContextMenu("Kill Zombie")]
+        private void KillFromContextMenu()
+        {
+            Kill();
+        }
+        
+        public void Kill()
+        {
+            if (state == ZombieState.Dead)
+            {
+                return;
+            }
+
+            ClearAttackAfterMovement();
+
+            state = ZombieState.Dead;
+            alertTimer = 0f;
+            roamTimer = 0f;
+
+            if (zombieGridMover != null)
+            {
+                zombieGridMover.StopMovement();
+            }
+
+            if (zombieGridPosition != null)
+            {
+                zombieGridPosition.UnregisterFromOccupancy();
+            }
+
+            if (ZombieManager.Instance != null)
+            {
+                ZombieManager.Instance.Unregister(this);
+            }
+
+            Debug.Log($"{name} was killed.", this);
+
+            /*
+             * Simple first implementation:
+             * hide/disable the zombie immediately.
+             *
+             * Later, when you add death animations, you may want to delay this
+             * until the animation finishes.
+             */
+            
+            // play death animation
+            // wait for animation event
+            // then gameObject.SetActive(false)
+            
+            gameObject.SetActive(false);
         }
 
         public void TakeTurn()
@@ -507,18 +572,18 @@ namespace IsometricPathfinding.Zombies
                 return false;
             }
 
-            List<Vector2Int> limitedPath = LimitPathToMovementPoints(path, movementPointsPerTurn);
+            CopyLimitedPathTo(path, movementPointsPerTurn, limitedTurnPath);
 
-            if (limitedPath.Count < 2)
+            if (limitedTurnPath.Count < 2)
             {
                 return false;
             }
 
-            int usedMovementPoints = limitedPath.Count - 1;
+            int usedMovementPoints = limitedTurnPath.Count - 1;
 
             remainingMovementPoints = Mathf.Max(0, movementPointsPerTurn - usedMovementPoints);
 
-            bool movementStarted = zombieGridMover.TryMoveAlongPath(limitedPath);
+            bool movementStarted = zombieGridMover.TryMoveAlongPath(limitedTurnPath);
 
             if (!movementStarted)
             {
@@ -565,18 +630,27 @@ namespace IsometricPathfinding.Zombies
             return bestCell;
         }
 
-        private static List<Vector2Int> LimitPathToMovementPoints(IReadOnlyList<Vector2Int> path, int movementPoints)
+        private static void CopyLimitedPathTo(
+            IReadOnlyList<Vector2Int> source,
+            int movementPoints,
+            List<Vector2Int> destination
+        )
         {
-            List<Vector2Int> limitedPath = new List<Vector2Int>();
+            destination.Clear();
 
-            int maxIndex = Mathf.Min(path.Count - 1, movementPoints);
+            if (source == null || source.Count == 0)
+            {
+                return;
+            }
+
+            int safeMovementPoints = Mathf.Max(0, movementPoints);
+
+            int maxIndex = Mathf.Min(source.Count - 1, safeMovementPoints);
 
             for (int i = 0; i <= maxIndex; i++)
             {
-                limitedPath.Add(path[i]);
+                destination.Add(source[i]);
             }
-
-            return limitedPath;
         }
         
         private static Vector2Int GetVectorFromDirection(GridDirection direction)
@@ -684,42 +758,32 @@ namespace IsometricPathfinding.Zombies
         {
             Vector2Int start = zombieGridPosition.CurrentCell;
 
-            Vector2Int[] directions =
-            {
-                Vector2Int.up,
-                Vector2Int.down,
-                Vector2Int.right,
-                Vector2Int.left,
-            };
+            roamCandidates.Clear();
 
-            List<Vector2Int> candidates = new List<Vector2Int>();
-
-            for (int i = 0; i < directions.Length; i++)
+            for (int i = 0; i < RoamDirections.Length; i++)
             {
-                Vector2Int candidate = start + directions[i];
+                Vector2Int candidate = start + RoamDirections[i];
 
                 if (!navigationGrid.IsWalkableForActor(candidate, gameObject))
                 {
                     continue;
                 }
-                
-                candidates.Add(candidate);
+
+                roamCandidates.Add(candidate);
             }
 
-            if (candidates.Count == 0)
+            if (roamCandidates.Count == 0)
             {
                 return;
             }
-            
-            Vector2Int target = candidates[UnityEngine.Random.Range(0, candidates.Count)];
 
-            List<Vector2Int> path = new List<Vector2Int>()
-            {
-                start,
-                target
-            };
-            
-            zombieGridMover.TryMoveAlongPath(path);
+            Vector2Int target = roamCandidates[UnityEngine.Random.Range(0, roamCandidates.Count)];
+
+            roamPath.Clear();
+            roamPath.Add(start);
+            roamPath.Add(target);
+
+            zombieGridMover.TryMoveAlongPath(roamPath);
         }
 
         private void ResetRoamTimer()

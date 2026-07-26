@@ -47,5 +47,8 @@ TagManager:
   - name: Overlay
     uniqueID: 3285775377
     locked: 0
+  - name: Zombie
+    uniqueID: 2816590791
+    locked: 0
   m_RenderingLayers:
   - Default

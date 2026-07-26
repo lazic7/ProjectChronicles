@@ -7,6 +7,7 @@ using IsometricPathfinding.Navigation;
 using IsometricPathfinding.UI;
 using IsometricPathfinding.Zombies;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
 // ReSharper disable once CheckNamespace
@@ -28,6 +29,8 @@ namespace IsometricPathfinding.Pathfinding
         [SerializeField] private PathPreviewRenderer pathPreviewRenderer;
 
         [SerializeField] private DangerTurnController dangerTurnController;
+        
+        [SerializeField] private ZombieStrikeTargetingController zombieStrikeTargetingController;
         
         [Header("Tactical Path Costs")]
 
@@ -82,6 +85,8 @@ namespace IsometricPathfinding.Pathfinding
         private AStarPathfinder pathfinder;
 
         private readonly List<Vector2Int> currentPath = new List<Vector2Int>();
+        
+        private readonly List<Vector2Int> movementClickPath = new List<Vector2Int>();
 
         private bool hasProcessedHover;
         private bool lastTargetWasWalkable;
@@ -107,6 +112,34 @@ namespace IsometricPathfinding.Pathfinding
 
         private void LateUpdate()
         {
+            /*
+             * If the pointer is over UI, do not update world path preview
+             * and do not accept world movement clicks.
+             *
+             * This prevents UI buttons such as Strike from also interacting
+             * with the isometric grid underneath them.
+             */
+            if (IsPointerOverUi())
+            {
+                if (hasProcessedHover || currentPath.Count > 0 || hasValidPath)
+                {
+                    ClearCurrentPath();
+                }
+
+                return;
+            }
+            
+            if (zombieStrikeTargetingController != null
+                && zombieStrikeTargetingController.IsTargetingZombieAction)
+            {
+                if (hasProcessedHover || currentPath.Count > 0 || hasValidPath)
+                {
+                    ClearCurrentPath();
+                }
+
+                return;
+            }
+            
             /*
              * Dok se igrač kreće ne prikazujemo novu
              * hover putanju i ne prihvaćamo novi cilj.
@@ -180,6 +213,11 @@ namespace IsometricPathfinding.Pathfinding
                 return;
             }
 
+            if (IsPointerOverUi())
+            {
+                return;
+            }
+
             if (!hasValidPath)
             {
                 return;
@@ -204,9 +242,9 @@ namespace IsometricPathfinding.Pathfinding
                 return;
             }
 
-            IReadOnlyList<Vector2Int> pathToUse = LimitPathToMovementPoints(currentPath, playerMovementPoints);
+            CopyLimitedPathTo(currentPath, playerMovementPoints, movementClickPath);
 
-            bool movementStarted = playerGridMover.TryMoveAlongPath(pathToUse);
+            bool movementStarted = playerGridMover.TryMoveAlongPath(movementClickPath);
 
             if (!movementStarted)
             {
@@ -219,6 +257,16 @@ namespace IsometricPathfinding.Pathfinding
              */
 
             ClearCurrentPath();
+        }
+        
+        private static bool IsPointerOverUi()
+        {
+            if (EventSystem.current == null)
+            {
+                return false;
+            }
+
+            return EventSystem.current.IsPointerOverGameObject();
         }
 
         private void CalculateAndDisplayPath(
@@ -283,7 +331,7 @@ namespace IsometricPathfinding.Pathfinding
                 return;
             }
 
-            currentPath.AddRange(LimitPathToMovementPoints(pathResult.Path, playerMovementPoints));
+            CopyLimitedPathTo(pathResult.Path, playerMovementPoints, currentPath);
 
             hasValidPath = currentPath.Count >= 2;
 
@@ -468,44 +516,27 @@ namespace IsometricPathfinding.Pathfinding
             pathPreviewRenderer.Clear();
         }
 
-        private static List<Vector2Int> LimitPathToMovementPoints(
-            IReadOnlyList<Vector2Int> path,
-            int movementPoints
+        private static void CopyLimitedPathTo(
+            IReadOnlyList<Vector2Int> source,
+            int movementPoints,
+            List<Vector2Int> destination
         )
         {
-            List<Vector2Int> limitedPath = new List<Vector2Int>();
+            destination.Clear();
 
-            if (path == null || path.Count == 0)
+            if (source == null || source.Count == 0)
             {
-                return limitedPath;
+                return;
             }
-
-            /*
-             * path[0] is the current player cell.
-             *
-             * movementPoints means actual movement steps.
-             *
-             * Example:
-             * movementPoints = 4
-             *
-             * path indices allowed:
-             * 0 = start cell
-             * 1 = step 1
-             * 2 = step 2
-             * 3 = step 3
-             * 4 = step 4
-             */
 
             int safeMovementPoints = Mathf.Max(0, movementPoints);
 
-            int maxIndex = Mathf.Min(path.Count - 1, safeMovementPoints);
+            int maxIndex = Mathf.Min(source.Count - 1, safeMovementPoints);
 
             for (int i = 0; i <= maxIndex; i++)
             {
-                limitedPath.Add(path[i]);
+                destination.Add(source[i]);
             }
-
-            return limitedPath;
         }
 
         private void LogInvalidTarget(Vector2Int targetCoordinates, string reason)

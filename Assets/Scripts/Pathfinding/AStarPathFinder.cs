@@ -159,6 +159,8 @@ namespace IsometricPathfinding.Pathfinding
         private readonly Func<Vector2Int, bool> canEnterCell;
 
         private readonly TacticalPathProfile defaultProfile;
+        
+        private readonly GridNode[] neighborBuffer = new GridNode[4];
 
         public AStarPathfinder(
             NavigationGrid navigationGrid,
@@ -358,10 +360,15 @@ namespace IsometricPathfinding.Pathfinding
                     continue;
                 }
 
-                List<GridNode> neighbors = navigationGrid.GetNeighbors(currentState.Node);
+                int neighborCount = navigationGrid.GetNeighborsNonAlloc(
+                    currentState.Node,
+                    neighborBuffer
+                );
 
-                foreach (GridNode neighbor in neighbors)
+                for (int i = 0; i < neighborCount; i++)
                 {
+                    GridNode neighbor = neighborBuffer[i];
+                    
                     if (!neighbor.IsWalkable)
                     {
                         continue;

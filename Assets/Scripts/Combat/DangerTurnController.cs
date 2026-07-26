@@ -31,11 +31,19 @@ namespace IsometricPathfinding.Combat
 
         [SerializeField] [Min(0)] private int dangerExitRange = 8;
         
+        [SerializeField] [Min(0.05f)]
+        private float activeZombieRefreshInterval = 0.25f;
+
+        private float activeZombieRefreshTimer;
+        
         public GameMode GameMode => gameMode;
         public DangerTurnPhase CurrentPhase => currentPhase;
         public bool IsInDangerMode => gameMode == GameMode.Danger;
         
         private Coroutine zombieTurnRoutine;
+        
+        private ZombieAgent pendingStrikeTarget;
+        
 
         private void Awake()
         {
@@ -56,6 +64,15 @@ namespace IsometricPathfinding.Combat
             {
                 return;
             }
+
+            activeZombieRefreshTimer -= Time.deltaTime;
+
+            if (activeZombieRefreshTimer > 0f)
+            {
+                return;
+            }
+
+            activeZombieRefreshTimer = activeZombieRefreshInterval;
 
             RefreshActiveZombies();
 
@@ -98,6 +115,7 @@ namespace IsometricPathfinding.Combat
             {
                 gameMode = GameMode.Danger;
                 currentPhase = DangerTurnPhase.PlayerTurn;
+                activeZombieRefreshTimer = 0f;
                 activeZombies.Clear();
 
                 Debug.Log("Entered Danger Mode", this);
@@ -106,6 +124,129 @@ namespace IsometricPathfinding.Combat
             TryAddActiveZombie(triggeringZombie);
 
             RefreshActiveZombies();
+        }
+        
+        public bool CanPlayerAct()
+        {
+            return gameMode == GameMode.Danger
+                   && currentPhase == DangerTurnPhase.PlayerTurn
+                   && zombieTurnRoutine == null;
+        }
+
+        public bool CanStartStrike(ZombieAgent zombie)
+        {
+            if (!CanPlayerAct())
+            {
+                return false;
+            }
+
+            if (zombie == null)
+            {
+                return false;
+            }
+
+            if (zombie.State == ZombieState.Dead)
+            {
+                return false;
+            }
+
+            return IsZombieActive(zombie);
+        }
+        
+        public bool BeginStrikeApproach(ZombieAgent zombie)
+        {
+            if (!CanStartStrike(zombie))
+            {
+                return false;
+            }
+
+            pendingStrikeTarget = zombie;
+            currentPhase = DangerTurnPhase.PlayerStrikeApproach;
+
+            return true;
+        }
+        
+        public void CancelStrikeAction()
+        {
+            if (gameMode != GameMode.Danger)
+            {
+                return;
+            }
+
+            if (currentPhase != DangerTurnPhase.PlayerStrikeApproach
+                && currentPhase != DangerTurnPhase.StrikeMinigame)
+            {
+                return;
+            }
+
+            pendingStrikeTarget = null;
+            currentPhase = DangerTurnPhase.PlayerTurn;
+        }
+        
+        public bool BeginStrikeMinigame(ZombieAgent zombie)
+        {
+            if (gameMode != GameMode.Danger)
+            {
+                return false;
+            }
+
+            if (zombie == null)
+            {
+                return false;
+            }
+
+            if (zombie.State == ZombieState.Dead)
+            {
+                return false;
+            }
+
+            if (!IsZombieActive(zombie))
+            {
+                return false;
+            }
+
+            pendingStrikeTarget = zombie;
+            currentPhase = DangerTurnPhase.StrikeMinigame;
+
+            return true;
+        }
+        
+        public void CompleteStrikeMinigame(bool wasSuccessful)
+        {
+            if (gameMode != GameMode.Danger)
+            {
+                return;
+            }
+
+            if (currentPhase != DangerTurnPhase.StrikeMinigame)
+            {
+                return;
+            }
+
+            ZombieAgent target = pendingStrikeTarget;
+            pendingStrikeTarget = null;
+
+            if (target != null && target.State != ZombieState.Dead)
+            {
+                if (wasSuccessful)
+                {
+                    target.Kill();
+                }
+                else
+                {
+                    Debug.Log($"Strike missed {target.name}.", target);
+                }
+            }
+
+            RefreshActiveZombies();
+
+            if (activeZombies.Count == 0)
+            {
+                ExitDangerMode();
+                return;
+            }
+
+            StartZombieTurn();
         }
         
         private void TryAddActiveZombie(ZombieAgent zombie)
@@ -184,9 +325,25 @@ namespace IsometricPathfinding.Combat
                     continue;
                 }
 
+                if (zombie.State == ZombieState.Dead)
+                {
+                    if (pendingStrikeTarget == zombie)
+                    {
+                        pendingStrikeTarget = null;
+                    }
+
+                    activeZombies.RemoveAt(i);
+                    continue;
+                }
+
                 if (GetDistanceToPlayer(zombie) > dangerExitRange)
                 {
                     activeZombies.RemoveAt(i);
+
+                    if (pendingStrikeTarget == zombie)
+                    {
+                        pendingStrikeTarget = null;
+                    }
 
                     zombie.SetRoamingState();
 
@@ -237,6 +394,7 @@ namespace IsometricPathfinding.Combat
 
             gameMode = GameMode.Exploration;
             currentPhase = DangerTurnPhase.None;
+            pendingStrikeTarget = null;
             activeZombies.Clear();
 
             Debug.Log("Exited Danger Mode", this);
@@ -249,7 +407,42 @@ namespace IsometricPathfinding.Combat
                 return;
             }
 
+            /*
+             * Special case:
+             * The player was moving toward a zombie after clicking Strike.
+             *
+             * This movement should NOT end the player turn immediately.
+             * Instead, it should open the strike minigame.
+             */
+            if (currentPhase == DangerTurnPhase.PlayerStrikeApproach)
+            {
+                if (pendingStrikeTarget == null || pendingStrikeTarget.State == ZombieState.Dead)
+                {
+                    pendingStrikeTarget = null;
+                    currentPhase = DangerTurnPhase.PlayerTurn;
+                    return;
+                }
+
+                BeginStrikeMinigame(pendingStrikeTarget);
+                return;
+            }
+
+            /*
+             * Normal case:
+             * The player moved during their turn.
+             * Now the zombie turn starts.
+             */
             if (currentPhase != DangerTurnPhase.PlayerTurn)
+            {
+                return;
+            }
+
+            StartZombieTurn();
+        }
+        
+        public void StartZombieTurn()
+        {
+            if (gameMode != GameMode.Danger)
             {
                 return;
             }
@@ -259,11 +452,14 @@ namespace IsometricPathfinding.Combat
                 return;
             }
 
+            pendingStrikeTarget = null;
+
             zombieTurnRoutine = StartCoroutine(RunZombieTurn());
         }
 
         private IEnumerator RunZombieTurn()
         {
+            pendingStrikeTarget = null;
             currentPhase = DangerTurnPhase.ZombieTurn;
 
             int zombieIndex = 0;

@@ -190,6 +190,29 @@ namespace IsometricPathfinding.Navigation
 
             return neighbors;
         }
+        
+        public int GetNeighborsNonAlloc(GridNode node, GridNode[] results)
+        {
+            if (node == null || results == null)
+            {
+                return 0;
+            }
+
+            int count = 0;
+
+            for (int i = 0; i < CardinalDirections.Length && count < results.Length; i++)
+            {
+                Vector2Int neighborCoordinates = node.Coordinates + CardinalDirections[i];
+
+                if (TryGetNode(neighborCoordinates, out GridNode neighbor))
+                {
+                    results[count] = neighbor;
+                    count++;
+                }
+            }
+
+            return count;
+        }
 
         public Vector3Int WorldToCell(Vector3 worldPosition)
         {

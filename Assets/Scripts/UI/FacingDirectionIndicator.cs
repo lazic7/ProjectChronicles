@@ -30,6 +30,11 @@ namespace IsometricPathfinding.UI
         [SerializeField] private int sortingOrder = 100;
 
         private LineRenderer lineRenderer;
+        
+        private Vector2Int lastCell;
+        private GridDirection lastFacingDirection;
+        private Vector3 lastActorPosition;
+        private bool hasLastLineState;
 
         private void Reset()
         {
@@ -72,6 +77,30 @@ namespace IsometricPathfinding.UI
 
         private void LateUpdate()
         {
+            GridDirection facingDirection = GetFacingDirection();
+            Vector2Int currentCell = GetCurrentCell();
+
+            Transform actorTransform = GetActorTransform();
+            Vector3 actorPosition = actorTransform != null
+                ? actorTransform.position
+                : transform.position;
+
+            bool stateUnchanged =
+                hasLastLineState
+                && lastCell == currentCell
+                && lastFacingDirection == facingDirection
+                && lastActorPosition == actorPosition;
+
+            if (stateUnchanged)
+            {
+                return;
+            }
+
+            lastCell = currentCell;
+            lastFacingDirection = facingDirection;
+            lastActorPosition = actorPosition;
+            hasLastLineState = true;
+
             UpdateLine();
         }
 

@@ -89,6 +89,20 @@ namespace IsometricPathfinding.Zombies
            return true;
        }
        
+       public void StopMovement()
+       {
+           isMoving = false;
+           nextPathIndex = 0;
+
+           currentTargetCell = zombieGridPosition != null
+               ? zombieGridPosition.CurrentCell
+               : default;
+
+           currentMovementDirection = GridDirection.None;
+
+           activePath.Clear();
+       }
+       
        public void FaceDirection(GridDirection direction)
        {
            if (direction == GridDirection.None)
@@ -208,12 +222,7 @@ namespace IsometricPathfinding.Zombies
        
        private void OnDisable()
        {
-           isMoving = false;
-           nextPathIndex = 0;
-
-           currentMovementDirection = GridDirection.None;
-
-           activePath.Clear();
+           StopMovement();
        }
     }
 }
