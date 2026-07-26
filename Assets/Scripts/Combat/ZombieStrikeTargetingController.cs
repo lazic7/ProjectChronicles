@@ -124,7 +124,7 @@ namespace IsometricPathfinding.Combat
                 return;
             }
 
-            SetCurrentTarget(hoveredZombie, ZombieAttackOption.None);
+            SetCurrentTarget(hoveredZombie, ZombieAttackOption.Strike);
         }
 
         private void UpdateSelectedActionClick(bool hasHoveredZombie, ZombieAgent hoveredZombie)
