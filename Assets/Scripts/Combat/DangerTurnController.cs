@@ -261,6 +261,8 @@ namespace IsometricPathfinding.Combat
             {
                 return false;
             }
+            
+            FacePlayerTowardZombie(zombie);
 
             pendingStrikeTarget = zombie;
             currentPhase = DangerTurnPhase.StrikeMinigame;
@@ -338,6 +340,45 @@ namespace IsometricPathfinding.Combat
             zombie.SetCombatState();
 
             Debug.Log($"{zombie.name} joined Danger Mode.", zombie);
+        }
+        
+        private void FacePlayerTowardZombie(ZombieAgent zombie)
+        {
+            if (zombie == null || playerGridMover == null || playerGridPosition == null)
+            {
+                return;
+            }
+
+            GridDirection direction = GetDirectionTowardCell(
+                playerGridPosition.CurrentCell,
+                zombie.CurrentCell
+            );
+
+            playerGridMover.FaceDirection(direction);
+        }
+
+        private static GridDirection GetDirectionTowardCell(Vector2Int fromCell, Vector2Int toCell)
+        {
+            Vector2Int difference = toCell - fromCell;
+
+            if (difference == Vector2Int.zero)
+            {
+                return GridDirection.None;
+            }
+
+            int absoluteX = Mathf.Abs(difference.x);
+            int absoluteY = Mathf.Abs(difference.y);
+
+            if (absoluteX >= absoluteY)
+            {
+                return difference.x > 0
+                    ? GridDirection.Right
+                    : GridDirection.Left;
+            }
+
+            return difference.y > 0
+                ? GridDirection.Up
+                : GridDirection.Down;
         }
         
         private void RefreshActiveZombies()
