@@ -1,6 +1,7 @@
 using IsometricPathfinding.Combat;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
 namespace IsometricPathfinding.UI
@@ -10,6 +11,8 @@ namespace IsometricPathfinding.UI
     {
         [Header("Scene References")]
         [SerializeField] private ZombieStrikeTargetingController targetingController;
+
+        [SerializeField] private ZombieActionMenuView actionMenuView;
 
         [SerializeField] private RectTransform labelRoot;
 
@@ -41,13 +44,29 @@ namespace IsometricPathfinding.UI
                 return;
             }
 
-            if (targetingController == null)
+            /*
+             * Do not show the cursor label while the player is choosing
+             * Shoot/Strike from the zombie action menu.
+             */
+            if (IsPointerOverUi())
             {
                 Hide();
                 return;
             }
 
-            ZombieAttackOption option = targetingController.SelectedOption;
+            if (targetingController == null || actionMenuView == null)
+            {
+                Hide();
+                return;
+            }
+
+            if (!targetingController.IsTargetingZombieAction)
+            {
+                Hide();
+                return;
+            }
+
+            ZombieAttackOption option = actionMenuView.SelectedOption;
 
             if (option == ZombieAttackOption.None)
             {
@@ -57,6 +76,16 @@ namespace IsometricPathfinding.UI
 
             Show(option);
             FollowMouse();
+        }
+        
+        private static bool IsPointerOverUi()
+        {
+            if (EventSystem.current == null)
+            {
+                return false;
+            }
+
+            return EventSystem.current.IsPointerOverGameObject();
         }
 
         private void Show(ZombieAttackOption option)
@@ -79,6 +108,8 @@ namespace IsometricPathfinding.UI
             {
                 labelRootObject.SetActive(false);
             }
+
+            lastDisplayedOption = ZombieAttackOption.None;
         }
 
         private void FollowMouse()
@@ -97,6 +128,17 @@ namespace IsometricPathfinding.UI
                 Debug.LogError(
                     $"{nameof(SelectedZombieActionCursorLabel)} on '{name}' is missing the " +
                     $"{nameof(ZombieStrikeTargetingController)} reference.",
+                    this
+                );
+
+                referencesAreValid = false;
+            }
+
+            if (actionMenuView == null)
+            {
+                Debug.LogError(
+                    $"{nameof(SelectedZombieActionCursorLabel)} on '{name}' is missing the " +
+                    $"{nameof(ZombieActionMenuView)} reference.",
                     this
                 );
 
