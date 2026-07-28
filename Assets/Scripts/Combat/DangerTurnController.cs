@@ -46,6 +46,10 @@ namespace IsometricPathfinding.Combat
         
         public event Action StrikeMinigameEnded;
         
+        public event Action<ZombieAgent> PlayerStrikeMissed;
+
+        public event Action<ZombieAgent> PlayerKilledZombie;
+        
         private Coroutine zombieTurnRoutine;
         
         private ZombieAgent pendingStrikeTarget;
@@ -300,10 +304,12 @@ namespace IsometricPathfinding.Combat
                 if (wasSuccessful)
                 {
                     target.Kill();
+                    PlayerKilledZombie?.Invoke(target);
                 }
                 else
                 {
                     Debug.Log($"Strike missed {target.name}.", target);
+                    PlayerStrikeMissed?.Invoke(target);
                 }
             }
 

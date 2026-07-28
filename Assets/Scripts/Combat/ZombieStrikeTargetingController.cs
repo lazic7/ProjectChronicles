@@ -23,6 +23,9 @@ namespace IsometricPathfinding.Combat
 
         [Header("Prompt Timing")]
         [SerializeField] [Min(0f)] private float hideDelay = 0.2f;
+        
+        [Header("Default Action")]
+        [SerializeField] private ZombieAttackOption defaultAttackOption = ZombieAttackOption.Strike;
 
         [Header("Debug")]
         [SerializeField] private bool logActionRequests;
@@ -136,7 +139,7 @@ namespace IsometricPathfinding.Combat
                 return;
             }
 
-            SetCurrentTarget(hoveredZombie, ZombieAttackOption.None);
+            SetCurrentTarget(hoveredZombie, defaultAttackOption);
         }
 
         private void UpdateSelectedActionClick(bool hasHoveredZombie, ZombieAgent hoveredZombie)
@@ -441,6 +444,16 @@ namespace IsometricPathfinding.Combat
             }
 
             return EventSystem.current.IsPointerOverGameObject();
+        }
+        
+        private void OnValidate()
+        {
+            hideDelay = Mathf.Max(0f, hideDelay);
+
+            if (defaultAttackOption == ZombieAttackOption.None)
+            {
+                defaultAttackOption = ZombieAttackOption.Strike;
+            }
         }
 
         private bool ValidateReferences()

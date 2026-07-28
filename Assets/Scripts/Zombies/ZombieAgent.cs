@@ -72,6 +72,10 @@ namespace IsometricPathfinding.Zombies
         
         public Vector2Int CurrentCell => zombieGridPosition.CurrentCell;
         
+        public static event Action<ZombieAgent> ZombieAttackMissedPlayer;
+
+        public static event Action<ZombieAgent> ZombieAttackHitPlayer;
+        
         public GridDirection CurrentMovementDirection => zombieGridMover.CurrentMovementDirection;
 
         public GridDirection FacingDirection => zombieGridMover.FacingDirection;
@@ -510,10 +514,12 @@ namespace IsometricPathfinding.Zombies
             if (!DoesAttackHit())
             {
                 Debug.Log($"{name} attacks player but misses.", this);
+                ZombieAttackMissedPlayer?.Invoke(this);
                 return;
             }
 
             Debug.Log($"{name} attacks player and hits.", this);
+            ZombieAttackHitPlayer?.Invoke(this);
 
             // Later:
             // playerHealth.TakeDamage(damage);
