@@ -36,6 +36,8 @@ namespace IsometricPathfinding.Combat
 
         private ZombieAttackOption selectedOption = ZombieAttackOption.None;
 
+        private bool isActionPinned;
+
         private float hideTimer;
         private Transform worldCameraTransform;
         private float cameraDistanceToWorldPlane;
@@ -83,6 +85,7 @@ namespace IsometricPathfinding.Combat
 
             currentTarget = null;
             selectedOption = ZombieAttackOption.None;
+            isActionPinned = false;
         }
 
         private void Update()
@@ -111,13 +114,17 @@ namespace IsometricPathfinding.Combat
             bool hasHoveredZombie = TryGetHoveredZombie(out ZombieAgent hoveredZombie);
 
             /*
-             * If the player already selected Shoot or Strike,
+             * If the player explicitly selected Shoot or Strike from the menu,
              * the menu is pinned to that zombie until the player clicks:
              *
              * - the same zombie: execute selected action
              * - elsewhere: cancel selected action
+             *
+             * Important:
+             * defaultAttackOption highlights Strike while hovering, but that
+             * should not pin the menu after the cursor leaves the zombie.
              */
-            if (selectedOption != ZombieAttackOption.None)
+            if (isActionPinned)
             {
                 UpdateSelectedActionClick(hasHoveredZombie, hoveredZombie);
                 return;
@@ -140,6 +147,11 @@ namespace IsometricPathfinding.Combat
             }
 
             SetCurrentTarget(hoveredZombie, defaultAttackOption);
+
+            if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+            {
+                RequestSelectedAction();
+            }
         }
 
         private void UpdateSelectedActionClick(bool hasHoveredZombie, ZombieAgent hoveredZombie)
@@ -220,6 +232,7 @@ namespace IsometricPathfinding.Combat
             if (currentTarget == null)
             {
                 selectedOption = ZombieAttackOption.None;
+                isActionPinned = false;
                 actionMenuView.Hide();
                 return;
             }
@@ -231,6 +244,7 @@ namespace IsometricPathfinding.Combat
             }
 
             selectedOption = option;
+            isActionPinned = option != ZombieAttackOption.None;
 
             /*
              * Pin the menu to this target.
@@ -341,6 +355,8 @@ namespace IsometricPathfinding.Combat
         {
             hideTimer = hideDelay;
 
+            isActionPinned = false;
+
             if (currentTarget != zombie)
             {
                 HideCurrentOutline();
@@ -387,6 +403,7 @@ namespace IsometricPathfinding.Combat
             currentTarget = null;
             currentOutline = null;
             selectedOption = ZombieAttackOption.None;
+            isActionPinned = false;
 
             if (actionMenuView != null)
             {

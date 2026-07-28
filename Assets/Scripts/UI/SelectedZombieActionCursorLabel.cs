@@ -18,8 +18,15 @@ namespace IsometricPathfinding.UI
 
         [SerializeField] private TextMeshProUGUI labelText;
 
+        [SerializeField] private RectTransform backgroundRoot;
+
         [Header("Positioning")]
         [SerializeField] private Vector2 screenOffset = new Vector2(18f, -18f);
+
+        [Header("Background")]
+        [SerializeField] private bool resizeBackgroundToText = true;
+
+        [SerializeField] private Vector2 backgroundPadding = new Vector2(18f, 10f);
 
         private GameObject labelRootObject;
         private ZombieAttackOption lastDisplayedOption = ZombieAttackOption.None;
@@ -95,10 +102,16 @@ namespace IsometricPathfinding.UI
                 labelRootObject.SetActive(true);
             }
 
+            if (backgroundRoot != null && !backgroundRoot.gameObject.activeSelf)
+            {
+                backgroundRoot.gameObject.SetActive(true);
+            }
+
             if (option != lastDisplayedOption)
             {
                 lastDisplayedOption = option;
                 labelText.text = option.ToString().ToUpperInvariant();
+                RefreshBackgroundSize();
             }
         }
 
@@ -109,6 +122,11 @@ namespace IsometricPathfinding.UI
                 labelRootObject.SetActive(false);
             }
 
+            if (backgroundRoot != null)
+            {
+                backgroundRoot.gameObject.SetActive(false);
+            }
+
             lastDisplayedOption = ZombieAttackOption.None;
         }
 
@@ -117,6 +135,22 @@ namespace IsometricPathfinding.UI
             Vector2 mousePosition = Mouse.current.position.ReadValue();
 
             labelRoot.position = mousePosition + screenOffset;
+
+            if (backgroundRoot != null && !backgroundRoot.IsChildOf(labelRoot))
+            {
+                backgroundRoot.position = labelRoot.position;
+            }
+        }
+
+        private void RefreshBackgroundSize()
+        {
+            if (!resizeBackgroundToText || backgroundRoot == null || labelText == null)
+            {
+                return;
+            }
+
+            Vector2 preferredTextSize = labelText.GetPreferredValues(labelText.text);
+            backgroundRoot.sizeDelta = preferredTextSize + backgroundPadding;
         }
 
         private bool ValidateReferences()
@@ -166,6 +200,12 @@ namespace IsometricPathfinding.UI
             }
 
             return referencesAreValid;
+        }
+
+        private void OnValidate()
+        {
+            backgroundPadding.x = Mathf.Max(0f, backgroundPadding.x);
+            backgroundPadding.y = Mathf.Max(0f, backgroundPadding.y);
         }
     }
 }
