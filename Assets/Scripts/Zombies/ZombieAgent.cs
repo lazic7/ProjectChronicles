@@ -59,6 +59,12 @@ namespace IsometricPathfinding.Zombies
 
         [SerializeField] private bool logPathResults;
 
+        [Header("Runtime Investigation State")]
+
+        [SerializeField] private bool hasGunshotInvestigationTarget;
+
+        [SerializeField] private Vector2Int gunshotInvestigationTargetCell;
+
         private float roamTimer;
 
         private float alertTimer;
@@ -91,6 +97,8 @@ namespace IsometricPathfinding.Zombies
         private readonly List<Vector2Int> roamCandidates = new List<Vector2Int>(4);
 
         private readonly List<Vector2Int> roamPath = new List<Vector2Int>(2);
+
+        private readonly List<Vector2Int> investigationPath = new List<Vector2Int>();
 
         private readonly List<Vector2Int> limitedTurnPath = new List<Vector2Int>();
 
@@ -284,6 +292,8 @@ namespace IsometricPathfinding.Zombies
                 return;
             }
 
+            ClearGunshotInvestigationTarget();
+
             state = ZombieState.Combat;
             alertTimer = 0f;
         }
@@ -299,7 +309,46 @@ namespace IsometricPathfinding.Zombies
 
             state = ZombieState.Roaming;
             alertTimer = 0f;
+
+            if (hasGunshotInvestigationTarget)
+            {
+                roamTimer = 0f;
+                return;
+            }
+
             ResetRoamTimer();
+        }
+
+        public void InvestigateGunshot(Vector2Int shotCell)
+        {
+            if (state == ZombieState.Dead)
+            {
+                return;
+            }
+
+            if (navigationGrid == null
+                || zombieGridPosition == null
+                || zombieGridMover == null
+                || pathFinder == null)
+            {
+                return;
+            }
+
+            gunshotInvestigationTargetCell = shotCell;
+            hasGunshotInvestigationTarget = true;
+            alertTimer = 0f;
+            roamTimer = 0f;
+
+            if (state != ZombieState.Combat)
+            {
+                ClearAttackAfterMovement();
+                state = ZombieState.Roaming;
+            }
+
+            if (logPathResults)
+            {
+                Debug.Log($"{name} heard a gunshot at {shotCell} and is investigating.", this);
+            }
         }
         
         [ContextMenu("Kill Zombie")]
@@ -316,6 +365,7 @@ namespace IsometricPathfinding.Zombies
             }
 
             ClearAttackAfterMovement();
+            ClearGunshotInvestigationTarget();
 
             state = ZombieState.Dead;
             alertTimer = 0f;
@@ -356,6 +406,7 @@ namespace IsometricPathfinding.Zombies
         public void TakeTurn()
         {
             ClearAttackAfterMovement();
+            ClearGunshotInvestigationTarget();
             
             if (state == ZombieState.Dead)
             {
@@ -725,6 +776,12 @@ namespace IsometricPathfinding.Zombies
                 return;
             }
 
+            if (hasGunshotInvestigationTarget)
+            {
+                UpdateGunshotInvestigation();
+                return;
+            }
+
             roamTimer -= Time.deltaTime;
 
             if (roamTimer > 0f)
@@ -735,6 +792,186 @@ namespace IsometricPathfinding.Zombies
             ResetRoamTimer();
 
             TryRoam();
+        }
+
+        private void UpdateGunshotInvestigation()
+        {
+            if (HasReachedGunshotInvestigationTarget())
+            {
+                ClearGunshotInvestigationTarget();
+                ResetRoamTimer();
+                return;
+            }
+
+            roamTimer -= Time.deltaTime;
+
+            if (roamTimer > 0f)
+            {
+                return;
+            }
+
+            bool movementStarted = TryMoveTowardGunshotInvestigationTarget();
+
+            if (!movementStarted)
+            {
+                TryRoam();
+            }
+
+            ResetRoamTimer();
+
+            if (!movementStarted && logPathResults)
+            {
+                Debug.Log(
+                    $"{name} could not find a route toward gunshot cell " +
+                    $"{gunshotInvestigationTargetCell}. Will retry.",
+                    this
+                );
+            }
+        }
+
+        private bool HasReachedGunshotInvestigationTarget()
+        {
+            if (!navigationGrid.ContainsCell(gunshotInvestigationTargetCell))
+            {
+                return true;
+            }
+
+            Vector2Int currentCell = zombieGridPosition.CurrentCell;
+
+            if (currentCell == gunshotInvestigationTargetCell)
+            {
+                return true;
+            }
+
+            return !navigationGrid.IsWalkableForActor(gunshotInvestigationTargetCell, gameObject)
+                   && GetGridDistance(currentCell, gunshotInvestigationTargetCell) <= 1;
+        }
+
+        private bool TryMoveTowardGunshotInvestigationTarget()
+        {
+            if (zombieGridMover.IsMoving)
+            {
+                return false;
+            }
+
+            if (!TryFindBestGunshotInvestigationPath(investigationPath))
+            {
+                return false;
+            }
+
+            CopyLimitedPathTo(investigationPath, movementPointsPerTurn, limitedTurnPath);
+
+            if (limitedTurnPath.Count < 2)
+            {
+                return false;
+            }
+
+            bool movementStarted = zombieGridMover.TryMoveAlongPath(limitedTurnPath);
+
+            if (movementStarted && logPathResults)
+            {
+                Debug.Log(
+                    $"{name} is roaming toward gunshot cell " +
+                    $"{gunshotInvestigationTargetCell}.",
+                    this
+                );
+            }
+
+            return movementStarted;
+        }
+
+        private bool TryFindBestGunshotInvestigationPath(List<Vector2Int> bestPath)
+        {
+            bestPath.Clear();
+
+            Vector2Int start = zombieGridPosition.CurrentCell;
+            Vector2Int target = gunshotInvestigationTargetCell;
+
+            bool foundCandidate = false;
+            TacticalPathResult bestResult = default;
+
+            TryEvaluateGunshotInvestigationCandidate(
+                start,
+                target,
+                ref foundCandidate,
+                ref bestResult
+            );
+
+            for (int i = 0; i < RoamDirections.Length; i++)
+            {
+                TryEvaluateGunshotInvestigationCandidate(
+                    start,
+                    target + RoamDirections[i],
+                    ref foundCandidate,
+                    ref bestResult
+                );
+            }
+
+            if (!foundCandidate)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < bestResult.Path.Count; i++)
+            {
+                bestPath.Add(bestResult.Path[i]);
+            }
+
+            return bestPath.Count >= 2;
+        }
+
+        private void TryEvaluateGunshotInvestigationCandidate(
+            Vector2Int start,
+            Vector2Int candidate,
+            ref bool foundCandidate,
+            ref TacticalPathResult bestResult
+        )
+        {
+            if (candidate != start
+                && !navigationGrid.IsWalkableForActor(candidate, gameObject))
+            {
+                return;
+            }
+
+            GridDirection initialFacingDirection = FacingDirection;
+
+            if (initialFacingDirection == GridDirection.None)
+            {
+                initialFacingDirection = GridDirection.Down;
+            }
+
+            bool pathFound = pathFinder.TryFindPath(
+                start,
+                candidate,
+                initialFacingDirection,
+                TacticalPathProfile.Default,
+                out TacticalPathResult candidateResult
+            );
+
+            if (!pathFound || candidateResult.Path.Count < 2)
+            {
+                return;
+            }
+
+            bool candidateIsBetter =
+                !foundCandidate
+                || candidateResult.StepCount < bestResult.StepCount
+                || (candidateResult.StepCount == bestResult.StepCount
+                    && candidateResult.TotalScore < bestResult.TotalScore);
+
+            if (!candidateIsBetter)
+            {
+                return;
+            }
+
+            foundCandidate = true;
+            bestResult = candidateResult;
+        }
+
+        private void ClearGunshotInvestigationTarget()
+        {
+            hasGunshotInvestigationTarget = false;
+            gunshotInvestigationTargetCell = default;
         }
 
         private void TryRoam()

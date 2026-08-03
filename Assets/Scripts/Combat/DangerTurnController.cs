@@ -426,6 +426,8 @@ namespace IsometricPathfinding.Combat
 
             ShootMinigameEnded?.Invoke();
 
+            Vector2Int shotCell = playerGridPosition.CurrentCell;
+
             ZombieAgent target = pendingShootTarget;
             pendingShootTarget = null;
 
@@ -441,6 +443,11 @@ namespace IsometricPathfinding.Combat
                     Debug.Log($"Shot missed {target.name}.", target);
                     PlayerShootMissed?.Invoke(target);
                 }
+            }
+
+            if (zombieManager != null)
+            {
+                zombieManager.NotifyGunshotAt(shotCell);
             }
 
             RefreshActiveZombies();

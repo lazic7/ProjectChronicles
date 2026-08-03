@@ -97,6 +97,28 @@ namespace IsometricPathfinding.Zombies
             RebuildZombieLookup();
         }
 
+        public void NotifyGunshotAt(Vector2Int shotCell)
+        {
+            RemoveNullReferences();
+
+            for (int i = 0; i < zombies.Count; i++)
+            {
+                ZombieAgent zombie = zombies[i];
+
+                if (zombie == null)
+                {
+                    continue;
+                }
+
+                if (zombie.State == ZombieState.Dead)
+                {
+                    continue;
+                }
+
+                zombie.InvestigateGunshot(shotCell);
+            }
+        }
+
         private void RebuildZombieLookup()
         {
             for (int i = zombies.Count - 1; i >= 0; i--)
