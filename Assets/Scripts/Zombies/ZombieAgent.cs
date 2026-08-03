@@ -130,7 +130,7 @@ namespace IsometricPathfinding.Zombies
         private void Update()
         {
             if (dangerTurnController != null
-                && dangerTurnController.CurrentPhase == DangerTurnPhase.StrikeMinigame)
+                && dangerTurnController.IsActionMinigameActive)
             {
                 return;
             }

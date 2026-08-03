@@ -32,6 +32,15 @@ namespace IsometricPathfinding.Combat
         [SerializeField] [Min(0)] private int zombieJoinRange = 6;
 
         [SerializeField] [Min(0)] private int dangerExitRange = 8;
+
+        [Header("Shoot Difficulty")]
+        [SerializeField] [Min(1)] private int toughShotDistance = 4;
+
+        [SerializeField] [Min(1)] private int maximumShotDifficultyDistance = 8;
+
+        [SerializeField] [Min(1f)] private float toughShotSpeedMultiplier = 1.75f;
+
+        [SerializeField] [Min(1f)] private float maximumToughShotSpeedMultiplier = 2.5f;
         
         [SerializeField] [Min(0.05f)]
         private float activeZombieRefreshInterval = 0.25f;
@@ -41,24 +50,35 @@ namespace IsometricPathfinding.Combat
         public GameMode GameMode => gameMode;
         public DangerTurnPhase CurrentPhase => currentPhase;
         public bool IsInDangerMode => gameMode == GameMode.Danger;
+        public bool IsActionMinigameActive => IsActionMinigamePhase(currentPhase);
 
         public event Action<ZombieAgent> StrikeMinigameStarted;
+
+        public event Action<ZombieAgent> ShootMinigameStarted;
         
         public event Action StrikeMinigameEnded;
+
+        public event Action ShootMinigameEnded;
         
         public event Action<ZombieAgent> PlayerStrikeMissed;
+
+        public event Action<ZombieAgent> PlayerShootMissed;
 
         public event Action<ZombieAgent> PlayerKilledZombie;
         
         private Coroutine zombieTurnRoutine;
         
         private ZombieAgent pendingStrikeTarget;
-        
-        private float timeScaleBeforeStrikeMinigame = 1f;
 
-        private bool hasPausedTimeForStrikeMinigame;
+        private ZombieAgent pendingShootTarget;
         
-        public int LastStrikeMinigameFinishedFrame { get; private set; } = -1;
+        private float timeScaleBeforeActionMinigame = 1f;
+
+        private bool hasPausedTimeForActionMinigame;
+        
+        public int LastActionMinigameFinishedFrame { get; private set; } = -1;
+
+        public int LastStrikeMinigameFinishedFrame => LastActionMinigameFinishedFrame;
         
 
         private void Awake()
@@ -83,7 +103,7 @@ namespace IsometricPathfinding.Combat
                 return;
             }
             
-            if (currentPhase == DangerTurnPhase.StrikeMinigame)
+            if (IsActionMinigameActive)
             {
                 return;
             }
@@ -115,7 +135,7 @@ namespace IsometricPathfinding.Combat
 
         private void OnDisable()
         {
-            ResumeGameAfterStrikeMinigame();
+            ResumeGameAfterActionMinigame();
             
             if (playerGridMover != null)
             {
@@ -129,31 +149,31 @@ namespace IsometricPathfinding.Combat
             }
         }
         
-        private void PauseGameForStrikeMinigame()
+        private void PauseGameForActionMinigame(string minigameName)
         {
-            if (hasPausedTimeForStrikeMinigame)
+            if (hasPausedTimeForActionMinigame)
             {
                 return;
             }
 
-            timeScaleBeforeStrikeMinigame = Time.timeScale;
+            timeScaleBeforeActionMinigame = Time.timeScale;
             Time.timeScale = 0f;
-            hasPausedTimeForStrikeMinigame = true;
+            hasPausedTimeForActionMinigame = true;
 
-            Debug.Log("Game paused for Strike Minigame.", this);
+            Debug.Log($"Game paused for {minigameName} Minigame.", this);
         }
 
-        private void ResumeGameAfterStrikeMinigame()
+        private void ResumeGameAfterActionMinigame()
         {
-            if (!hasPausedTimeForStrikeMinigame)
+            if (!hasPausedTimeForActionMinigame)
             {
                 return;
             }
 
-            Time.timeScale = timeScaleBeforeStrikeMinigame;
-            hasPausedTimeForStrikeMinigame = false;
+            Time.timeScale = timeScaleBeforeActionMinigame;
+            hasPausedTimeForActionMinigame = false;
 
-            Debug.Log("Game resumed after Strike Minigame.", this);
+            Debug.Log("Game resumed after action minigame.", this);
         }
 
         public void EnterDangerMode(ZombieAgent triggeringZombie)
@@ -204,6 +224,51 @@ namespace IsometricPathfinding.Combat
 
             return IsZombieActive(zombie);
         }
+
+        public bool CanStartShoot(ZombieAgent zombie)
+        {
+            return CanStartStrike(zombie);
+        }
+
+        public bool IsToughShoot(ZombieAgent zombie)
+        {
+            int distance = GetShootDistanceToPlayer(zombie);
+
+            return distance != int.MaxValue
+                   && distance >= toughShotDistance;
+        }
+
+        public float GetShootCursorSpeedMultiplier(ZombieAgent zombie)
+        {
+            int distance = GetShootDistanceToPlayer(zombie);
+
+            if (distance == int.MaxValue || distance < toughShotDistance)
+            {
+                return 1f;
+            }
+
+            if (maximumShotDifficultyDistance <= toughShotDistance)
+            {
+                return maximumToughShotSpeedMultiplier;
+            }
+
+            float difficultyProgress = Mathf.InverseLerp(
+                toughShotDistance,
+                maximumShotDifficultyDistance,
+                distance
+            );
+
+            return Mathf.Lerp(
+                toughShotSpeedMultiplier,
+                maximumToughShotSpeedMultiplier,
+                difficultyProgress
+            );
+        }
+
+        public int GetShootDistanceToPlayer(ZombieAgent zombie)
+        {
+            return GetDistanceToPlayer(zombie);
+        }
         
         public bool BeginStrikeApproach(ZombieAgent zombie)
         {
@@ -231,11 +296,11 @@ namespace IsometricPathfinding.Combat
                 return;
             }
 
-            ResumeGameAfterStrikeMinigame();
+            ResumeGameAfterActionMinigame();
             
             if (currentPhase == DangerTurnPhase.StrikeMinigame)
             {
-                LastStrikeMinigameFinishedFrame = Time.frameCount;
+                LastActionMinigameFinishedFrame = Time.frameCount;
             }
             
             StrikeMinigameEnded?.Invoke();
@@ -271,7 +336,7 @@ namespace IsometricPathfinding.Combat
             pendingStrikeTarget = zombie;
             currentPhase = DangerTurnPhase.StrikeMinigame;
 
-            PauseGameForStrikeMinigame();
+            PauseGameForActionMinigame("Strike");
 
             StrikeMinigameStarted?.Invoke(zombie);
 
@@ -290,9 +355,9 @@ namespace IsometricPathfinding.Combat
                 return;
             }
             
-            ResumeGameAfterStrikeMinigame();
+            ResumeGameAfterActionMinigame();
             
-            LastStrikeMinigameFinishedFrame = Time.frameCount;
+            LastActionMinigameFinishedFrame = Time.frameCount;
             
             StrikeMinigameEnded?.Invoke();
 
@@ -310,6 +375,71 @@ namespace IsometricPathfinding.Combat
                 {
                     Debug.Log($"Strike missed {target.name}.", target);
                     PlayerStrikeMissed?.Invoke(target);
+                }
+            }
+
+            RefreshActiveZombies();
+
+            if (activeZombies.Count == 0)
+            {
+                ExitDangerMode();
+                return;
+            }
+
+            StartZombieTurn();
+        }
+
+        public bool BeginShootMinigame(ZombieAgent zombie)
+        {
+            if (!CanStartShoot(zombie))
+            {
+                return false;
+            }
+
+            FacePlayerTowardZombie(zombie);
+
+            pendingShootTarget = zombie;
+            currentPhase = DangerTurnPhase.ShootMinigame;
+
+            PauseGameForActionMinigame("Shoot");
+
+            ShootMinigameStarted?.Invoke(zombie);
+
+            return true;
+        }
+
+        public void CompleteShootMinigame(bool wasSuccessful)
+        {
+            if (gameMode != GameMode.Danger)
+            {
+                return;
+            }
+
+            if (currentPhase != DangerTurnPhase.ShootMinigame)
+            {
+                return;
+            }
+
+            ResumeGameAfterActionMinigame();
+
+            LastActionMinigameFinishedFrame = Time.frameCount;
+
+            ShootMinigameEnded?.Invoke();
+
+            ZombieAgent target = pendingShootTarget;
+            pendingShootTarget = null;
+
+            if (target != null && target.State != ZombieState.Dead)
+            {
+                if (wasSuccessful)
+                {
+                    target.Kill();
+                    PlayerKilledZombie?.Invoke(target);
+                }
+                else
+                {
+                    Debug.Log($"Shot missed {target.name}.", target);
+                    PlayerShootMissed?.Invoke(target);
                 }
             }
 
@@ -447,6 +577,11 @@ namespace IsometricPathfinding.Combat
                         pendingStrikeTarget = null;
                     }
 
+                    if (pendingShootTarget == zombie)
+                    {
+                        pendingShootTarget = null;
+                    }
+
                     RemoveActiveZombieAt(i);
                     continue;
                 }
@@ -458,6 +593,11 @@ namespace IsometricPathfinding.Combat
                     if (pendingStrikeTarget == zombie)
                     {
                         pendingStrikeTarget = null;
+                    }
+
+                    if (pendingShootTarget == zombie)
+                    {
+                        pendingShootTarget = null;
                     }
 
                     zombie.SetRoamingState();
@@ -489,8 +629,9 @@ namespace IsometricPathfinding.Combat
 
         private void ExitDangerMode(bool stopZombieTurnRoutine)
         {
-            ResumeGameAfterStrikeMinigame();
+            ResumeGameAfterActionMinigame();
             StrikeMinigameEnded?.Invoke();
+            ShootMinigameEnded?.Invoke();
             
             if (stopZombieTurnRoutine && zombieTurnRoutine != null)
             {
@@ -513,6 +654,7 @@ namespace IsometricPathfinding.Combat
             gameMode = GameMode.Exploration;
             currentPhase = DangerTurnPhase.None;
             pendingStrikeTarget = null;
+            pendingShootTarget = null;
             ClearActiveZombies();
 
             Debug.Log("Exited Danger Mode", this);
@@ -571,6 +713,7 @@ namespace IsometricPathfinding.Combat
             }
 
             pendingStrikeTarget = null;
+            pendingShootTarget = null;
 
             zombieTurnRoutine = StartCoroutine(RunZombieTurn());
         }
@@ -578,6 +721,7 @@ namespace IsometricPathfinding.Combat
         private IEnumerator RunZombieTurn()
         {
             pendingStrikeTarget = null;
+            pendingShootTarget = null;
             currentPhase = DangerTurnPhase.ZombieTurn;
 
             int zombieIndex = 0;
@@ -649,6 +793,12 @@ namespace IsometricPathfinding.Combat
             return zombie != null && activeZombieLookup.Contains(zombie);
         }
 
+        private static bool IsActionMinigamePhase(DangerTurnPhase phase)
+        {
+            return phase == DangerTurnPhase.StrikeMinigame
+                   || phase == DangerTurnPhase.ShootMinigame;
+        }
+
         private void ClearActiveZombies()
         {
             activeZombies.Clear();
@@ -686,6 +836,13 @@ namespace IsometricPathfinding.Combat
         {
             zombieJoinRange = Mathf.Max(0, zombieJoinRange);
             dangerExitRange = Mathf.Max(zombieJoinRange, dangerExitRange);
+            toughShotDistance = Mathf.Max(1, toughShotDistance);
+            maximumShotDifficultyDistance = Mathf.Max(toughShotDistance, maximumShotDifficultyDistance);
+            toughShotSpeedMultiplier = Mathf.Max(1f, toughShotSpeedMultiplier);
+            maximumToughShotSpeedMultiplier = Mathf.Max(
+                toughShotSpeedMultiplier,
+                maximumToughShotSpeedMultiplier
+            );
         }
         
         private bool ValidateReferences()

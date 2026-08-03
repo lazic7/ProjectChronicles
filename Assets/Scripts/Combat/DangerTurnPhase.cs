@@ -23,15 +23,22 @@ namespace IsometricPathfinding.Combat
         PlayerStrikeApproach = 2,
 
         /*
-         * The timing minigame is active.
+         * The strike timing minigame is active.
          * Gameplay will be paused with Time.timeScale = 0,
          * but the minigame UI will still animate with Time.unscaledDeltaTime.
          */
         StrikeMinigame = 3,
 
         /*
+         * The shoot timing minigame is active.
+         * This uses the same paused-time rule as StrikeMinigame,
+         * but shows a separate parabolic aiming cursor.
+         */
+        ShootMinigame = 4,
+
+        /*
          * Zombies are currently taking their turn.
          */
-        ZombieTurn = 4
+        ZombieTurn = 5
     }
 }

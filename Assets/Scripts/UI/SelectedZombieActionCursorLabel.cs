@@ -23,6 +23,9 @@ namespace IsometricPathfinding.UI
         [Header("Positioning")]
         [SerializeField] private Vector2 screenOffset = new Vector2(18f, -18f);
 
+        [Header("Labels")]
+        [SerializeField] private string toughShotLabel = "TOUGH SHOT";
+
         [Header("Background")]
         [SerializeField] private bool resizeBackgroundToText = true;
 
@@ -30,6 +33,7 @@ namespace IsometricPathfinding.UI
 
         private GameObject labelRootObject;
         private ZombieAttackOption lastDisplayedOption = ZombieAttackOption.None;
+        private string lastDisplayedText;
 
         private void Awake()
         {
@@ -107,12 +111,27 @@ namespace IsometricPathfinding.UI
                 backgroundRoot.gameObject.SetActive(true);
             }
 
-            if (option != lastDisplayedOption)
+            string displayText = GetDisplayText(option);
+
+            if (option != lastDisplayedOption || displayText != lastDisplayedText)
             {
                 lastDisplayedOption = option;
-                labelText.text = option.ToString().ToUpperInvariant();
+                lastDisplayedText = displayText;
+                labelText.text = displayText;
                 RefreshBackgroundSize();
             }
+        }
+
+        private string GetDisplayText(ZombieAttackOption option)
+        {
+            if (option == ZombieAttackOption.Shoot
+                && targetingController != null
+                && targetingController.CurrentTargetIsToughShoot)
+            {
+                return toughShotLabel;
+            }
+
+            return option.ToString().ToUpperInvariant();
         }
 
         private void Hide()
@@ -128,6 +147,7 @@ namespace IsometricPathfinding.UI
             }
 
             lastDisplayedOption = ZombieAttackOption.None;
+            lastDisplayedText = null;
         }
 
         private void FollowMouse()
@@ -206,6 +226,11 @@ namespace IsometricPathfinding.UI
         {
             backgroundPadding.x = Mathf.Max(0f, backgroundPadding.x);
             backgroundPadding.y = Mathf.Max(0f, backgroundPadding.y);
+
+            if (string.IsNullOrWhiteSpace(toughShotLabel))
+            {
+                toughShotLabel = "TOUGH SHOT";
+            }
         }
     }
 }

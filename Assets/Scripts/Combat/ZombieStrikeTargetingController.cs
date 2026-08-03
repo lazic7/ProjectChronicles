@@ -52,6 +52,8 @@ namespace IsometricPathfinding.Combat
 
         public ZombieAttackOption SelectedOption => selectedOption;
 
+        public bool CurrentTargetIsToughShoot => IsToughShootTarget(currentTarget);
+
         public event Action<ZombieAgent, ZombieAttackOption> ActionRequested;
         
         public bool IsTargetingZombieAction => currentTarget != null;
@@ -261,6 +263,12 @@ namespace IsometricPathfinding.Combat
             }
 
             return dangerTurnController.CanPlayerAct();
+        }
+
+        public bool IsToughShootTarget(ZombieAgent zombie)
+        {
+            return dangerTurnController != null
+                   && dangerTurnController.IsToughShoot(zombie);
         }
 
         private bool CanTargetZombie(ZombieAgent zombie)

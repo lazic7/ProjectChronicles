@@ -125,7 +125,8 @@ namespace IsometricPathfinding.Pathfinding
         {
             if (dangerTurnController != null)
             {
-                dangerTurnController.StrikeMinigameStarted += OnStrikeMinigameStarted;
+                dangerTurnController.StrikeMinigameStarted += OnActionMinigameStarted;
+                dangerTurnController.ShootMinigameStarted += OnActionMinigameStarted;
             }
         }
 
@@ -317,7 +318,7 @@ namespace IsometricPathfinding.Pathfinding
         private bool ShouldSuppressMovementInputThisFrame()
         {
             return dangerTurnController != null
-                   && dangerTurnController.LastStrikeMinigameFinishedFrame == Time.frameCount;
+                   && dangerTurnController.LastActionMinigameFinishedFrame == Time.frameCount;
         }
 
         private void CalculateAndDisplayPath(
@@ -700,7 +701,8 @@ namespace IsometricPathfinding.Pathfinding
         {
             if (dangerTurnController != null)
             {
-                dangerTurnController.StrikeMinigameStarted -= OnStrikeMinigameStarted;
+                dangerTurnController.StrikeMinigameStarted -= OnActionMinigameStarted;
+                dangerTurnController.ShootMinigameStarted -= OnActionMinigameStarted;
             }
 
             if (pathPreviewRenderer != null)
@@ -709,7 +711,7 @@ namespace IsometricPathfinding.Pathfinding
             }
         }
         
-        private void OnStrikeMinigameStarted(ZombieAgent zombie)
+        private void OnActionMinigameStarted(ZombieAgent zombie)
         {
             ClearCurrentPath();
         }

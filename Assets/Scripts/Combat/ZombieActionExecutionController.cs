@@ -94,14 +94,7 @@ namespace IsometricPathfinding.Combat
 
             if (option == ZombieAttackOption.Shoot)
             {
-                /*
-                 * Shoot is intentionally not implemented yet.
-                 * Later this can become a ranged attack or ranged minigame.
-                 */
-                if (logActionExecution)
-                {
-                    Debug.Log($"Shoot selected against {zombie.name}, but shooting is not implemented yet.", zombie);
-                }
+                ExecuteShoot(zombie);
             }
         }
 
@@ -168,6 +161,28 @@ namespace IsometricPathfinding.Combat
             if (logActionExecution)
             {
                 Debug.Log($"Player is moving adjacent to {zombie.name} for Strike.", zombie);
+            }
+        }
+
+        private void ExecuteShoot(ZombieAgent zombie)
+        {
+            if (!dangerTurnController.CanStartShoot(zombie))
+            {
+                return;
+            }
+
+            FacePlayerTowardZombie(zombie);
+
+            bool minigameStarted = dangerTurnController.BeginShootMinigame(zombie);
+
+            if (logActionExecution)
+            {
+                Debug.Log(
+                    minigameStarted
+                        ? $"Shoot minigame started against {zombie.name}."
+                        : $"Could not start shoot minigame against {zombie.name}.",
+                    zombie
+                );
             }
         }
 

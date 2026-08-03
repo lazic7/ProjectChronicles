@@ -8,7 +8,7 @@ using UnityEngine.UI;
 namespace IsometricPathfinding.UI
 {
     [DisallowMultipleComponent]
-    public sealed class StrikeMinigameCursorView : MonoBehaviour
+    public sealed class ShootMinigameCursorView : MonoBehaviour
     {
         [Header("Scene References")]
         [SerializeField] private Canvas canvas;
@@ -26,9 +26,11 @@ namespace IsometricPathfinding.UI
         [SerializeField] private Graphic cursorGraphic;
 
         [Header("Cursor Position")]
-        [SerializeField] private Vector3 zombieHeadWorldOffset = new Vector3(0f, 1.05f, 0f);
+        [SerializeField] private Vector3 zombieHeadWorldOffset = new Vector3(0f, 0.7f, 0f);
 
-        [SerializeField] [Min(1f)] private float verticalTravelPixels = 90f;
+        [SerializeField] [Min(1f)] private float horizontalTravelPixels = 100f;
+
+        [SerializeField] [Min(1f)] private float arcDropPixels = 55f;
 
         [SerializeField] [Min(1f)] private float cursorSpeedPixelsPerSecond = 260f;
 
@@ -52,6 +54,8 @@ namespace IsometricPathfinding.UI
 
         private float elapsedTime;
 
+        private float currentSpeedMultiplier = 1f;
+
         private bool isInsideHitWindow;
 
         private void Awake()
@@ -69,11 +73,7 @@ namespace IsometricPathfinding.UI
 
             cursorRootObject = cursorRoot.gameObject;
 
-            if (cursorText != null)
-            {
-                cursorText.text = "X";
-            }
-
+            SetCursorText();
             Hide();
         }
 
@@ -81,8 +81,8 @@ namespace IsometricPathfinding.UI
         {
             if (dangerTurnController != null)
             {
-                dangerTurnController.StrikeMinigameStarted += OnStrikeMinigameStarted;
-                dangerTurnController.StrikeMinigameEnded += OnStrikeMinigameEnded;
+                dangerTurnController.ShootMinigameStarted += OnShootMinigameStarted;
+                dangerTurnController.ShootMinigameEnded += OnShootMinigameEnded;
             }
         }
 
@@ -90,8 +90,8 @@ namespace IsometricPathfinding.UI
         {
             if (dangerTurnController != null)
             {
-                dangerTurnController.StrikeMinigameStarted -= OnStrikeMinigameStarted;
-                dangerTurnController.StrikeMinigameEnded -= OnStrikeMinigameEnded;
+                dangerTurnController.ShootMinigameStarted -= OnShootMinigameStarted;
+                dangerTurnController.ShootMinigameEnded -= OnShootMinigameEnded;
             }
 
             Hide();
@@ -116,7 +116,7 @@ namespace IsometricPathfinding.UI
             HandleClick();
         }
 
-        private void OnStrikeMinigameStarted(ZombieAgent target)
+        private void OnShootMinigameStarted(ZombieAgent target)
         {
             if (target == null)
             {
@@ -126,12 +126,10 @@ namespace IsometricPathfinding.UI
 
             currentTarget = target;
             elapsedTime = 0f;
+            currentSpeedMultiplier = GetCursorSpeedMultiplier(target);
             isInsideHitWindow = false;
 
-            if (cursorText != null)
-            {
-                cursorText.text = "X";
-            }
+            SetCursorText();
 
             if (targetingController != null)
             {
@@ -146,7 +144,7 @@ namespace IsometricPathfinding.UI
             UpdateCursorPositionAndColor();
         }
 
-        private void OnStrikeMinigameEnded()
+        private void OnShootMinigameEnded()
         {
             Hide();
         }
@@ -178,17 +176,49 @@ namespace IsometricPathfinding.UI
                 return;
             }
 
-            float fullTravel = verticalTravelPixels * 2f;
+            Vector2 cursorOffset = CalculateUParabolaOffset();
 
-            float verticalOffset =
-                Mathf.PingPong(elapsedTime * cursorSpeedPixelsPerSecond, fullTravel)
-                - verticalTravelPixels;
+            cursorRoot.anchoredPosition = headLocalPosition + cursorOffset;
 
-            cursorRoot.anchoredPosition = headLocalPosition + new Vector2(0f, verticalOffset);
-
-            isInsideHitWindow = Mathf.Abs(verticalOffset) <= hitWindowPixels;
+            isInsideHitWindow = cursorOffset.sqrMagnitude <= hitWindowPixels * hitWindowPixels;
 
             SetCursorColor(isInsideHitWindow ? hitColor : normalColor);
+        }
+
+        private Vector2 CalculateUParabolaOffset()
+        {
+            float fullTravel = horizontalTravelPixels * 2f;
+
+            float currentCursorSpeed = cursorSpeedPixelsPerSecond * currentSpeedMultiplier;
+
+            float horizontalOffset =
+                Mathf.PingPong(elapsedTime * currentCursorSpeed, fullTravel)
+                - horizontalTravelPixels;
+
+            float normalizedHorizontalOffset = horizontalOffset / horizontalTravelPixels;
+
+            /*
+             * The zombie head is the bottom of the U-shaped parabola.
+             * At x = 0, y = 0, so the O is exactly over the head and turns red.
+             * At the left/right edges, y is positive, making the O travel upward
+             * away from the head before returning through the hit point.
+             */
+            float verticalOffset =
+                arcDropPixels
+                * normalizedHorizontalOffset
+                * normalizedHorizontalOffset;
+
+            return new Vector2(horizontalOffset, verticalOffset);
+        }
+
+        private float GetCursorSpeedMultiplier(ZombieAgent target)
+        {
+            if (dangerTurnController == null)
+            {
+                return 1f;
+            }
+
+            return Mathf.Max(1f, dangerTurnController.GetShootCursorSpeedMultiplier(target));
         }
 
         private void HandleClick()
@@ -217,7 +247,15 @@ namespace IsometricPathfinding.UI
                 return;
             }
 
-            dangerTurnController.CompleteStrikeMinigame(isInsideHitWindow);
+            dangerTurnController.CompleteShootMinigame(isInsideHitWindow);
+        }
+
+        private void SetCursorText()
+        {
+            if (cursorText != null)
+            {
+                cursorText.text = "O";
+            }
         }
 
         private void SetCursorColor(Color color)
@@ -237,6 +275,7 @@ namespace IsometricPathfinding.UI
         {
             currentTarget = null;
             elapsedTime = 0f;
+            currentSpeedMultiplier = 1f;
             isInsideHitWindow = false;
 
             SetCursorColor(normalColor);
@@ -254,7 +293,7 @@ namespace IsometricPathfinding.UI
             if (canvas == null)
             {
                 Debug.LogError(
-                    $"{nameof(StrikeMinigameCursorView)} on '{name}' is missing the Canvas reference.",
+                    $"{nameof(ShootMinigameCursorView)} on '{name}' is missing the Canvas reference.",
                     this
                 );
 
@@ -264,7 +303,7 @@ namespace IsometricPathfinding.UI
             if (worldCamera == null)
             {
                 Debug.LogError(
-                    $"{nameof(StrikeMinigameCursorView)} on '{name}' is missing the World Camera reference.",
+                    $"{nameof(ShootMinigameCursorView)} on '{name}' is missing the World Camera reference.",
                     this
                 );
 
@@ -274,7 +313,7 @@ namespace IsometricPathfinding.UI
             if (dangerTurnController == null)
             {
                 Debug.LogError(
-                    $"{nameof(StrikeMinigameCursorView)} on '{name}' is missing the {nameof(DangerTurnController)} reference.",
+                    $"{nameof(ShootMinigameCursorView)} on '{name}' is missing the {nameof(DangerTurnController)} reference.",
                     this
                 );
 
@@ -284,7 +323,7 @@ namespace IsometricPathfinding.UI
             if (cursorRoot == null)
             {
                 Debug.LogError(
-                    $"{nameof(StrikeMinigameCursorView)} on '{name}' is missing the Cursor Root reference.",
+                    $"{nameof(ShootMinigameCursorView)} on '{name}' is missing the Cursor Root reference.",
                     this
                 );
 
@@ -294,7 +333,7 @@ namespace IsometricPathfinding.UI
             if (cursorGraphic == null && cursorText == null)
             {
                 Debug.LogError(
-                    $"{nameof(StrikeMinigameCursorView)} on '{name}' needs either Cursor Graphic or Cursor Text assigned.",
+                    $"{nameof(ShootMinigameCursorView)} on '{name}' needs either Cursor Graphic or Cursor Text assigned.",
                     this
                 );
 
@@ -306,10 +345,13 @@ namespace IsometricPathfinding.UI
 
         private void OnValidate()
         {
-            verticalTravelPixels = Mathf.Max(1f, verticalTravelPixels);
+            horizontalTravelPixels = Mathf.Max(1f, horizontalTravelPixels);
+            arcDropPixels = Mathf.Max(1f, arcDropPixels);
             cursorSpeedPixelsPerSecond = Mathf.Max(1f, cursorSpeedPixelsPerSecond);
             hitWindowPixels = Mathf.Max(1f, hitWindowPixels);
             inputGraceDuration = Mathf.Max(0f, inputGraceDuration);
         }
     }
 }
+
+

@@ -828,6 +828,10 @@ MonoBehaviour:
   currentPhase: 0
   zombieJoinRange: 6
   dangerExitRange: 8
+  toughShotDistance: 4
+  maximumShotDifficultyDistance: 8
+  toughShotSpeedMultiplier: 1.75
+  maximumToughShotSpeedMultiplier: 2.5
   activeZombieRefreshInterval: 0.25
 --- !u!1 &878724427
 GameObject:
@@ -1901,9 +1905,11 @@ MonoBehaviour:
   displayDuration: 1.25
   zombieMissedMessage: MISS!
   playerMissedMessage: MISS!
+  playerShootMissedMessage: MISS!
   zombieKilledMessage: HIT!
   zombieMissedColor: {r: 1, g: 1, b: 1, a: 1}
   playerMissedColor: {r: 1, g: 1, b: 1, a: 1}
+  playerShootMissedColor: {r: 1, g: 1, b: 1, a: 1}
   zombieKilledColor: {r: 1, g: 1, b: 1, a: 1}
   logFeedbackEvents: 0
 --- !u!1 &1230003542
@@ -2995,6 +3001,7 @@ MonoBehaviour:
   labelText: {fileID: 1926867099}
   backgroundRoot: {fileID: 1376722835}
   screenOffset: {x: 92, y: -48}
+  toughShotLabel: TOUGH SHOT
   resizeBackgroundToText: 1
   backgroundPadding: {x: 18, y: 10}
 --- !u!1 &1987230236
@@ -5762,6 +5769,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2131669772}
   - component: {fileID: 2131669773}
+  - component: {fileID: 2190000203}
   m_Layer: 5
   m_Name: StrikeMinigameUI
   m_TagString: Untagged
@@ -5837,6 +5845,33 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 14c17647a2145de4390ba3ab984b6285, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::IsometricPathfinding.Movement.PlayerGridMover
+--- !u!114 &2190000203
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2131669771}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5248eb20f6f79954483c0f544cd7a615, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::IsometricPathfinding.UI.ShootMinigameCursorView
+  canvas: {fileID: 878724430}
+  worldCamera: {fileID: 519420031}
+  dangerTurnController: {fileID: 656351545}
+  targetingController: {fileID: 1570888296}
+  cursorRoot: {fileID: 1508825808}
+  cursorText: {fileID: 1508825809}
+  cursorGraphic: {fileID: 1508825809}
+  zombieHeadWorldOffset: {x: 0, y: 0.7, z: 0}
+  horizontalTravelPixels: 100
+  arcDropPixels: 55
+  cursorSpeedPixelsPerSecond: 260
+  hitWindowPixels: 18
+  inputGraceDuration: 0.15
+  normalColor: {r: 1, g: 1, b: 1, a: 1}
+  hitColor: {r: 1, g: 0, b: 0, a: 1}
 --- !u!1001 &2774110112878486181
 PrefabInstance:
   m_ObjectHideFlags: 0

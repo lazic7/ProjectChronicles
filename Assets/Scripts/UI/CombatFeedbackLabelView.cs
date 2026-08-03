@@ -36,12 +36,16 @@ namespace IsometricPathfinding.UI
 
         [SerializeField] private string playerMissedMessage = "MISS!";
 
+        [SerializeField] private string playerShootMissedMessage = "MISS!";
+
         [SerializeField] private string zombieKilledMessage = "HIT!";
 
         [Header("Colors")]
         [SerializeField] private Color zombieMissedColor = new Color(1f, 1f, 1f, 1f);
 
         [SerializeField] private Color playerMissedColor = new Color(1f, 1f, 1f, 1f);
+
+        [SerializeField] private Color playerShootMissedColor = new Color(1f, 1f, 1f, 1f);
 
         [SerializeField] private Color zombieKilledColor = new Color(1f, 1f, 1f, 1f);
 
@@ -86,6 +90,7 @@ namespace IsometricPathfinding.UI
             if (dangerTurnController != null)
             {
                 dangerTurnController.PlayerStrikeMissed += OnPlayerStrikeMissed;
+                dangerTurnController.PlayerShootMissed += OnPlayerShootMissed;
                 dangerTurnController.PlayerKilledZombie += OnPlayerKilledZombie;
             }
 
@@ -97,6 +102,7 @@ namespace IsometricPathfinding.UI
             if (dangerTurnController != null)
             {
                 dangerTurnController.PlayerStrikeMissed -= OnPlayerStrikeMissed;
+                dangerTurnController.PlayerShootMissed -= OnPlayerShootMissed;
                 dangerTurnController.PlayerKilledZombie -= OnPlayerKilledZombie;
             }
 
@@ -151,6 +157,21 @@ namespace IsometricPathfinding.UI
             }
 
             ShowMessageOverZombie(playerMissedMessage, playerMissedColor, zombie);
+        }
+
+        private void OnPlayerShootMissed(ZombieAgent zombie)
+        {
+            if (logFeedbackEvents)
+            {
+                Debug.Log(
+                    zombie == null
+                        ? "Combat feedback received: player shot missed, but zombie reference was null."
+                        : $"Combat feedback received: player shot missed {zombie.name}.",
+                    this
+                );
+            }
+
+            ShowMessageOverZombie(playerShootMissedMessage, playerShootMissedColor, zombie);
         }
 
         private void OnPlayerKilledZombie(ZombieAgent zombie)
@@ -337,6 +358,11 @@ namespace IsometricPathfinding.UI
             if (zombieKilledMessage == null)
             {
                 zombieKilledMessage = "Zombie killed!";
+            }
+
+            if (playerShootMissedMessage == null)
+            {
+                playerShootMissedMessage = "You missed!";
             }
         }
     }
