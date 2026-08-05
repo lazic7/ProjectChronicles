@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 846251594129230631}
   - component: {fileID: 906755140005947418}
   - component: {fileID: 7754117253143730755}
+  - component: {fileID: 6904242080768631417}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -84,6 +85,23 @@ MonoBehaviour:
   remainingStepCount: 0
   currentMovementDirection: 0
   facingDirection: 2
+--- !u!114 &6904242080768631417
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1039065456997634628}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dae3740f7f81102df83aef0b46b6a2a3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::IsometricPathfinding.Combat.PlayerHealthController
+  maximumHealth: 100
+  startingHealth: 100
+  zombieHitDamagePercent: 49
+  currentHealth: 100
+  isDefeated: 0
 --- !u!1 &7122671622804936793
 GameObject:
   m_ObjectHideFlags: 0

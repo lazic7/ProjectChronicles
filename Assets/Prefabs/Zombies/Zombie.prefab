@@ -313,6 +313,8 @@ MonoBehaviour:
   minimumRoamDelay: 1.5
   maximumRoamDelay: 3.5
   logPathResults: 0
+  hasGunshotInvestigationTarget: 0
+  gunshotInvestigationTargetCell: {x: 0, y: 0}
 --- !u!1 &8030346185146236604
 GameObject:
   m_ObjectHideFlags: 0
