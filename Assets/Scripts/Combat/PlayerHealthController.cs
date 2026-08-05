@@ -53,6 +53,7 @@ namespace IsometricPathfinding.Combat
 
         public void RestoreFullHealth()
         {
+            isDefeated = false;
             SetHealth(maximumHealth);
         }
 
